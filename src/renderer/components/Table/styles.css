@@ -1,0 +1,105 @@
+/* Analysis Table Styles */
+.analysis-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+
+}
+
+.analysis-table th,
+.analysis-table td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--app-border);
+}
+
+.analysis-table th {
+    font-weight: bold;
+    color: var(--app-accent);
+}
+
+/* Row styles */
+.data-row td {
+    background-color: var(--app-bg);
+}
+
+/* Accordion button styles */
+.accordion-cell {
+    text-align: center;
+    width: 60px;
+}
+
+.accordion-btn {
+    background: transparent;
+    border: none;
+    color: var(--app-text);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 12px;
+    transition: transform 0.3s ease;
+    -webkit-app-region: no-drag;
+}
+
+.accordion-btn:hover {
+    color: var(--app-accent);
+}
+
+/* Expandable row styles */
+.expandable-row {
+    display: none;
+}
+
+.expandable-row.expanded {
+    display: table-row;
+}
+
+.expandable-row td {
+    padding: 12px 8px !important;
+    background-color: #262626;
+    max-height: 300px; 
+    position: relative; 
+}
+
+/* Content box styles */
+.content-box {
+    width: 100%;
+    background: #2d2d2d;
+    color: var(--app-text);
+    padding: 8px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    max-height: 200px; /* Add max height */
+    overflow-y: auto; /* Add vertical scroll */
+    word-wrap: break-word; /* Ensure text wraps */
+    -webkit-app-region: no-drag;
+}
+
+.content-box-wrapper {
+    position: relative;
+    max-height: 200px;
+    border-radius: 4px;
+    overflow: hidden;
+    -webkit-app-region: no-drag;  /* Allow scrolling */
+}
+
+/* Ensure scrollbar is visible and clickable */
+.content-box::-webkit-scrollbar {
+    width: 8px;
+}
+
+.content-box::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+}
+
+.content-box::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+}
+
+.content-box::-webkit-scrollbar-thumb:hover {
+    background: #4a9eff;
+}
+
