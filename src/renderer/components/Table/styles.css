@@ -23,6 +23,18 @@
     background-color: var(--app-bg);
 }
 
+.personal-data-cell {
+    position: relative;
+}
+
+.personal-data-content {
+    display: flex;
+    align-items: center;
+    /* Remove justify-content: space-between to prevent pushing content apart */
+    /* Reduce gap to bring elements closer */
+    gap: 4px;
+}
+
 /* Accordion button styles */
 .accordion-cell {
     text-align: center;
@@ -34,12 +46,14 @@
     border: none;
     color: var(--app-text);
     cursor: pointer;
-    padding: 4px 8px;
-    font-size: 12px;
+    padding: 0;
+    margin-left: 4px;
     transition: transform 0.3s ease;
     -webkit-app-region: no-drag;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
 }
-
 .accordion-btn:hover {
     color: var(--app-accent);
 }

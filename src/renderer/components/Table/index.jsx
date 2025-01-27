@@ -1,4 +1,6 @@
 import React, { useState, useCallback } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import ConfidenceScore from './confidencescore';
 import './styles.css';
 
 const AnalysisRow = ({ rowData, rowId, onToggle, isExpanded }) => {
@@ -27,20 +29,27 @@ const AnalysisRow = ({ rowData, rowId, onToggle, isExpanded }) => {
   return (
     <>
       <tr className="data-row">
-        <td>{`${rowData.attribute}: ${rowData.estimate}`}</td>
-        <td>{`${rowData.confidence}/5`}</td>
-        <td className="accordion-cell">
-          <button 
-            className="accordion-btn"
-            onClick={handleClick}
-            data-row-id={rowId}
-          >
-            {isExpanded ? '▲' : '▼'}
-          </button>
+        {/* Modified Personal Data cell to include the accordion button */}
+        <td className="personal-data-cell">
+          <div className="personal-data-content">
+            <span>{`${rowData.attribute}: ${rowData.estimate}`}</span>
+            <button 
+              className="accordion-btn"
+              onClick={handleClick}
+              data-row-id={rowId}
+            >
+              {isExpanded ? 
+                <ChevronDown size={20} /> : 
+                <ChevronRight size={20} />
+              }
+            </button>
+          </div>
         </td>
+        <td><ConfidenceScore score={parseInt(rowData.confidence)} /></td>
       </tr>
+      {/* Modified expandable row to span only 2 columns */}
       <tr className={`expandable-row ${isExpanded ? 'expanded' : ''}`}>
-        <td colSpan="3">
+        <td colSpan="2">
           <div className="content-box-wrapper">
             <div 
               className="content-box"
@@ -63,7 +72,6 @@ export const AnalysisTable = ({ data, expandedRowId, onToggleRow }) => {
         <tr>
           <th>Predicted Data</th>
           <th>Confidence</th>
-          <th style={{ width: '60px' }}>Explanation</th>
         </tr>
       </thead>
       <tbody>

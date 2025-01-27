@@ -66,105 +66,170 @@ const App = () => {
     return () => resizeObserver.disconnect();
   }, []);
 
+  // const processStreamingResponse = (accumulator, newChunk) => {
+  //   const combined = accumulator + newChunk;
+  //   let extractedPhrases = null;
+
+  //   if (!analysisProcessed && !combined.includes('"explanation"')) {
+  //     const attrPattern = /"([^"]+)":\s*{\s*"estimate":\s*"([^"]+)",\s*"confidence":\s*(\d+)/g;
+  //     let match;
+  //     let updates = new Map();
+
+  //     while ((match = attrPattern.exec(combined)) !== null) {
+  //       const [_, key, estimate, confidence] = match;
+  //       updates.set(key, {
+  //         estimate,
+  //         confidence: parseInt(confidence)
+  //       });
+  //     }
+
+  //     updates.forEach((value, key) => {
+  //       tableUpdateData(key, value);
+  //     });
+
+  //     const patterns = [
+  //       /"analysis"\s*:\s*"([^"]+)"/,
+  //       /"analysis"\s*:\s*"\\"([^"]+)\\""/,
+  //       /"analysis"\s*:\s*'([^']+)'/
+  //     ];
+
+  //     for (const pattern of patterns) {
+  //       const analysisMatch = combined.match(pattern);
+  //       if (analysisMatch) {
+  //         const phrases = analysisMatch[1]
+  //           .split(',')
+  //           .map(phrase =>
+  //             phrase
+  //               .trim()
+  //               .replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
+  //                 String.fromCodePoint(parseInt(hex, 16))
+  //               )
+  //           )
+  //           .filter(phrase => phrase && phrase !== '\\' && phrase !== '"');
+
+  //         if (phrases.length > 0) {
+  //           setLastAnalyzedPhrases(phrases);
+  //           if (overlayRef.current) {
+  //             overlayRef.current.innerHTML = highlightPhrases(inputText, phrases);
+  //           }
+  //           updateSidePanel(phrases);
+  //           setAnalysisProcessed(true);
+  //           extractedPhrases = phrases;
+  //           break;
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   return {
+  //     accumulated: combined,
+  //     analysedWords: extractedPhrases
+  //   };
+  // };
+
   const processStreamingResponse = (accumulator, newChunk) => {
     const combined = accumulator + newChunk;
-    let extractedPhrases = null;
-
-    if (!analysisProcessed && !combined.includes('"explanation"')) {
-      const attrPattern = /"([^"]+)":\s*{\s*"estimate":\s*"([^"]+)",\s*"confidence":\s*(\d+)/g;
-      let match;
-      let updates = new Map();
-
-      while ((match = attrPattern.exec(combined)) !== null) {
-        const [_, key, estimate, confidence] = match;
-        updates.set(key, {
-          estimate,
-          confidence: parseInt(confidence)
-        });
-      }
-
-      updates.forEach((value, key) => {
-        tableUpdateData(key, value);
+    let extractedPhrases = new Map(); // Using Map to store phrases per attribute
+  
+    // Extract attributes and their values
+    const attrPattern = /"([^"]+)":\s*{\s*"estimate":\s*"([^"]+)",\s*"confidence":\s*(\d+)/g;
+    let match;
+    let updates = new Map();
+  
+    while ((match = attrPattern.exec(combined)) !== null) {
+      const [_, key, estimate, confidence] = match;
+      updates.set(key, {
+        estimate,
+        confidence: parseInt(confidence)
       });
-
-      const patterns = [
-        /"analysis"\s*:\s*"([^"]+)"/,
-        /"analysis"\s*:\s*"\\"([^"]+)\\""/,
-        /"analysis"\s*:\s*'([^']+)'/
-      ];
-
-      for (const pattern of patterns) {
-        const analysisMatch = combined.match(pattern);
-        if (analysisMatch) {
-          const phrases = analysisMatch[1]
-            .split(',')
-            .map(phrase =>
-              phrase
-                .trim()
-                .replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
-                  String.fromCodePoint(parseInt(hex, 16))
-                )
+    }
+  
+    // Update table with attribute values
+    updates.forEach((value, key) => {
+      tableUpdateData(key, value);
+    });
+  
+    // Extract analysis phrases for each attribute
+    const attributeAnalysisPattern = /"([^"]+)":\s*{[^}]*"analysis":\s*"([^"]+)"/g;
+    let analysisMatch;
+  
+    while ((analysisMatch = attributeAnalysisPattern.exec(combined)) !== null) {
+      const [_, attribute, analysisText] = analysisMatch;
+      
+      // Process the analysis text to extract phrases
+      const phrases = analysisText
+        .split(',')
+        .map(phrase => 
+          phrase
+            .trim()
+            .replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
+              String.fromCodePoint(parseInt(hex, 16))
             )
-            .filter(phrase => phrase && phrase !== '\\' && phrase !== '"');
-
-          if (phrases.length > 0) {
-            setLastAnalyzedPhrases(phrases);
-            if (overlayRef.current) {
-              overlayRef.current.innerHTML = highlightPhrases(inputText, phrases);
-            }
-            updateSidePanel(phrases);
-            setAnalysisProcessed(true);
-            extractedPhrases = phrases;
-            break;
-          }
+        )
+        .filter(phrase => phrase && phrase !== '\\' && phrase !== '"');
+  
+      if (phrases.length > 0) {
+        extractedPhrases.set(attribute, phrases);
+        
+        // Update UI for this attribute's phrases
+        if (overlayRef.current) {
+          // Combine all phrases found so far
+          const allPhrases = Array.from(extractedPhrases.values()).flat();
+          overlayRef.current.innerHTML = highlightPhrases(inputText, allPhrases);
         }
+        
+        // Update side panel with all phrases found so far
+        const allPhrases = Array.from(extractedPhrases.values()).flat();
+        updateSidePanel(allPhrases);
+        
+        // Update last analyzed phrases state
+        setLastAnalyzedPhrases(allPhrases);
       }
     }
-
+  
     return {
       accumulated: combined,
-      analysedWords: extractedPhrases
+      analysedWords: Array.from(extractedPhrases.values()).flat(),
+      attributes: extractedPhrases
     };
   };
+
 
   const handleAnalyze = async () => {
     if (!modelReady) return;
     const text = inputText.trim();
     if (!text) return;
-
+  
     try {
       let accumulatedText = '';
-      let analysedWords = null;
-      setAnalysisProcessed(false);
+      let attributePhrases = new Map();
       tableClear();
       clearSidePanel();
       setLastAnalyzedPhrases([]);
-
-      // First pass: get initial data
+  
       await window.privacyAPI.analyzeText(text, (chunk) => {
         const result = processStreamingResponse(accumulatedText, chunk.text);
         accumulatedText = result.accumulated;
-
-        if (result.analysedWords && !analysedWords) {
-          analysedWords = result.analysedWords;
+  
+        // Update attribute phrases map
+        if (result.attributes) {
+          attributePhrases = new Map([...attributePhrases, ...result.attributes]);
         }
       });
-
-      // Second pass: update with explanations
-      if (analysedWords) {
+  
+      // Process explanations after all chunks are processed
+      if (attributePhrases.size > 0) {
         const explanations = extractExplanation(accumulatedText);
-        console.log("*Debug explanations available:", explanations);
-
-        // Update existing entries with explanations
+        
         for (const [key, explanation] of explanations) {
-          // Instead of reading from tableData, pass the explanation directly
           tableUpdateData(key, {
             estimate: tableData.get(key)?.estimate || '',
             confidence: tableData.get(key)?.confidence || 0,
-            explanation: explanation  // Pass the explanation directly
+            explanation: explanation
           });
         }
-        processProposal(accumulatedText, analysedWords);
+        
+        processProposal(accumulatedText, Array.from(attributePhrases.values()).flat());
       }
     } catch (error) {
       if (outputRef.current) {
