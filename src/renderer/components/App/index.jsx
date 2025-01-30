@@ -37,16 +37,16 @@ const App = () => {
       console.log('Setting model statuss:', ready);
       setModelReady(ready);
       if (ready) {
-          setStatus('Model ready');
+        setStatus('Model ready');
       }
-  };
+    };
 
     // Check initial status
     window.privacyAPI.checkModelStatus().then(handleModelStatus);
-    
+
     // Listen for future updates
     window.privacyAPI.onModelStatus(handleModelStatus);
-}, []);
+  }, []);
 
   // Gestione resize textarea
   useEffect(() => {
@@ -131,58 +131,76 @@ const App = () => {
     const combined = accumulator + newChunk;
     let extractedPhrases = new Map(); // Using Map to store phrases per attribute
   
-    // Extract attributes and their values
-    const attrPattern = /"([^"]+)":\s*{\s*"estimate":\s*"([^"]+)",\s*"confidence":\s*(\d+)/g;
+    // Extract attributes and their values along with explanations
+    const attrPattern = /"([^"]+)":\s*{[^}]*?"estimate":\s*"([^"]+)",\s*"confidence":\s*(\d+)/g;
     let match;
     let updates = new Map();
   
     while ((match = attrPattern.exec(combined)) !== null) {
       const [_, key, estimate, confidence] = match;
+      
+      // Extract explanation for this attribute if available
+      const explanationPattern = new RegExp(`"${key}":\\s*{[^}]*"explanation":\\s*"((?:[^"\\\\]|\\\\"|\\\\)*?)"`, 'g');
+      const explanationMatch = explanationPattern.exec(combined);
+      let explanation = null;
+      
+      if (explanationMatch) {
+        explanation = explanationMatch[1]
+          .replace(/\\"/g, '"')
+          .replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
+            String.fromCodePoint(parseInt(hex, 16))
+          )
+          .trim();
+      }
+  
       updates.set(key, {
         estimate,
-        confidence: parseInt(confidence)
+        confidence: parseInt(confidence),
+        explanation // Include explanation if found
       });
     }
   
-    // Update table with attribute values
+    // Update table with attribute values and explanations
     updates.forEach((value, key) => {
       tableUpdateData(key, value);
     });
   
     // Extract analysis phrases for each attribute
-    const attributeAnalysisPattern = /"([^"]+)":\s*{[^}]*"analysis":\s*"([^"]+)"/g;
+    const attributeAnalysisPattern = /"([^"]+)":\s*{[^}]*"analysis":\s*"((?:[^"\\]|\\"|\\)*?)"/g;
     let analysisMatch;
   
     while ((analysisMatch = attributeAnalysisPattern.exec(combined)) !== null) {
       const [_, attribute, analysisText] = analysisMatch;
       
+      // Clean up the analysis text by handling escaped quotes and Unicode
+      const cleanAnalysisText = analysisText
+        .replace(/\\"/g, '"')  // Replace \" with "
+        .replace(/^"|"$/g, '') // Remove outer quotes
+        .replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
+          String.fromCodePoint(parseInt(hex, 16))
+        );
+      
       // Process the analysis text to extract phrases
-      const phrases = analysisText
+      const phrases = cleanAnalysisText
         .split(',')
-        .map(phrase => 
+        .map(phrase =>
           phrase
             .trim()
-            .replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
-              String.fromCodePoint(parseInt(hex, 16))
-            )
+            .replace(/^"|"$/g, '')  // Remove any remaining outer quotes
         )
-        .filter(phrase => phrase && phrase !== '\\' && phrase !== '"');
+        .filter(phrase => phrase && phrase !== '\\' && phrase !== '"' && phrase.length > 0);
   
       if (phrases.length > 0) {
         extractedPhrases.set(attribute, phrases);
-        
-        // Update UI for this attribute's phrases
+  
+        // Get all phrases from all attributes processed so far
+        const allPhrases = Array.from(extractedPhrases.values()).flat();
+  
+        // Update UI with accumulated phrases
         if (overlayRef.current) {
-          // Combine all phrases found so far
-          const allPhrases = Array.from(extractedPhrases.values()).flat();
           overlayRef.current.innerHTML = highlightPhrases(inputText, allPhrases);
         }
-        
-        // Update side panel with all phrases found so far
-        const allPhrases = Array.from(extractedPhrases.values()).flat();
         updateSidePanel(allPhrases);
-        
-        // Update last analyzed phrases state
         setLastAnalyzedPhrases(allPhrases);
       }
     }
@@ -217,18 +235,8 @@ const App = () => {
         }
       });
   
-      // Process explanations after all chunks are processed
+      // Only process proposal after streaming is complete
       if (attributePhrases.size > 0) {
-        const explanations = extractExplanation(accumulatedText);
-        
-        for (const [key, explanation] of explanations) {
-          tableUpdateData(key, {
-            estimate: tableData.get(key)?.estimate || '',
-            confidence: tableData.get(key)?.confidence || 0,
-            explanation: explanation
-          });
-        }
-        
         processProposal(accumulatedText, Array.from(attributePhrases.values()).flat());
       }
     } catch (error) {
