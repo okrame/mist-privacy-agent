@@ -5,6 +5,7 @@ import { SidePanel } from '../SidePanel';
 import { useSidePanel } from '../SidePanel/useSidePanel';
 import './styles.css';
 import ModeToggle from './ModeToggle';
+import Spinner from './Spinner';
 
 
 const App = () => {
@@ -15,8 +16,7 @@ const App = () => {
   const [status, setStatus] = useState('Initializing model...');
   const [attributePhrases, setAttributePhrases] = useState({});
   const [mode, setMode] = useState('normal');
-
-
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Refs
   const mainContainerRef = useRef(null);
@@ -181,10 +181,11 @@ const App = () => {
 
 
   const handleAnalyze = async () => {
-    if (!modelReady) return;
+    if (!modelReady || isAnalyzing) return;  
     const text = inputText.trim();
     if (!text) return;
 
+    setIsAnalyzing(true);  
     try {
       let accumulatedText = '';
       let attributePhrases = new Map();
@@ -193,7 +194,6 @@ const App = () => {
       setLastAnalyzedPhrases([]);
       setAttributePhrases({});
 
-      // Clear the overlay highlights
       if (overlayRef.current) {
         overlayRef.current.textContent = inputText;
       }
@@ -202,13 +202,11 @@ const App = () => {
         const result = processStreamingResponse(accumulatedText, chunk.text);
         accumulatedText = result.accumulated;
 
-        // Update attribute phrases map
         if (result.attributes) {
           attributePhrases = new Map([...attributePhrases, ...result.attributes]);
         }
       });
 
-      // Only process proposal after streaming is complete
       if (attributePhrases.size > 0) {
         processProposal(accumulatedText, Array.from(attributePhrases.values()).flat());
       }
@@ -216,6 +214,8 @@ const App = () => {
       if (outputRef.current) {
         outputRef.current.textContent = `Error: ${error.message}`;
       }
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -228,7 +228,7 @@ const App = () => {
         overlayRef.current.innerHTML = highlightPhrases(
           newText,
           lastAnalyzedPhrases,
-          attributePhrases // You'll need to store this in state
+          attributePhrases 
         );
       } else {
         overlayRef.current.textContent = newText;
@@ -270,12 +270,15 @@ const App = () => {
             disabled={!modelReady}
           />
         </div>
-        <button
-          onClick={handleAnalyze}
-          disabled={!modelReady}
-        >
-          Analyzee!!
-        </button>
+        <div className="button-container">
+          <button
+            onClick={handleAnalyze}
+            disabled={!modelReady || isAnalyzing}
+          >
+            Size up!
+          </button>
+          <Spinner visible={isAnalyzing} />
+        </div>
         <div ref={outputRef} id="output">
           <AnalysisTable
             data={tableData}

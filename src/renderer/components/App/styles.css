@@ -170,3 +170,22 @@ h1 {
   margin: 0;
   text-align: center;
 }
+
+#analyzeBtn {
+  margin-top: 0px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.button-container {
+  display: flex;
+  align-items: center;
+}

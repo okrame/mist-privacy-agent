@@ -19,6 +19,12 @@
     box-shadow: -3px 0 10px rgba(0, 0, 0, 0.2);
 }
 
+/* Hide the side toggle when expanded */
+.side-panel.expanded .side-panel-toggle {
+    opacity: 0;
+    pointer-events: none;
+}
+
 .side-panel-toggle {
     position: absolute;
     left: 0;
@@ -36,7 +42,7 @@
     justify-content: center;
     color: var(--app-text);
     -webkit-app-region: no-drag;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
     padding: 0;
     z-index: 1001; /* Ensure toggle stays above panel */
 }
@@ -70,7 +76,7 @@
     background: #2d2d2d;
     border-bottom: 1px solid var(--app-border);
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between; /* Changed to space-between for close button */
     align-items: center;
     -webkit-app-region: no-drag;
     opacity: 0;
@@ -89,10 +95,43 @@
     color: #a0a0a0;
 }
 
+/* Close button styles */
+.close-button {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: var(--app-text);
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto; /* Push to right side */
+}
+
+.close-button:hover {
+    opacity: 1;
+}
+
+.close-button svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
 .side-panel-content {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 5px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.side-panel.expanded .side-panel-content {
+    opacity: 1;
 }
 
 .highlighted-word {
@@ -127,7 +166,3 @@
 .app-container.panel-expanded {
     padding-right: 200px; /* Full panel width when expanded */
 }
-
-
-
-

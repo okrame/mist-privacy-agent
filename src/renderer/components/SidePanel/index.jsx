@@ -3,13 +3,9 @@ import './styles.css';
 
 const SidePanel = forwardRef(({ mainContainerRef }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [phrases, setPhrases] = useState([]);
-
-  // Refs per accedere agli elementi DOM
   const panelRef = useRef(null);
 
-  // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     updateContent: (newPhrases) => {
       setPhrases(newPhrases || []);
@@ -19,7 +15,6 @@ const SidePanel = forwardRef(({ mainContainerRef }, ref) => {
     }
   }));
 
-  // Gestione tasto ESC
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && isExpanded) {
@@ -31,51 +26,46 @@ const SidePanel = forwardRef(({ mainContainerRef }, ref) => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isExpanded]);
 
-  //Aggiorna le classi del container principale quando cambia isExpanded
   useEffect(() => {
     if (mainContainerRef.current) {
       mainContainerRef.current.classList.toggle('panel-expanded', isExpanded);
     }
   }, [isExpanded, mainContainerRef]);
 
-  // useEffect(() => {
-  //   // Force scroll sync when panel state changes
-  //   if (mainContainerRef.current) {
-  //     const textarea = mainContainerRef.current.querySelector('textarea');
-  //     const overlay = mainContainerRef.current.querySelector('.overlay');
-  //     if (textarea && overlay) {
-  //       overlay.scrollTop = textarea.scrollTop;
-  //       overlay.scrollLeft = textarea.scrollLeft;
-  //     }
-  //   }
-  // }, [isExpanded, mainContainerRef]);
-
-
   const togglePanel = () => {
     setIsExpanded(prev => !prev);
   };
-
-
 
   return (
     <div
       ref={panelRef}
       className={`side-panel ${isExpanded ? 'expanded' : ''}`}
     >
+      {/* Toggle button only visible when collapsed */}
       <button
         className="side-panel-toggle"
         onClick={togglePanel}
-        aria-label="Toggle side panel"
+        aria-label="Open side panel"
         aria-expanded={isExpanded}
       >
         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
           <path d="M15 18l-6-6 6-6" className="arrow-left" />
-          <path d="M9 18l6-6-6-6" className="arrow-right" />
         </svg>
       </button>
 
       <div className="side-panel-header">
         <span>Summary</span>
+        {/* Close button only visible when expanded */}
+        <button 
+          className="close-button"
+          onClick={togglePanel}
+          aria-label="Close side panel"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
+            <path d="M18 6L6 18" />
+            <path d="M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <div className="side-panel-content">
