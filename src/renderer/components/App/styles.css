@@ -1,117 +1,172 @@
 .app-container {
-    border-radius: 8px;
-    max-width: 800px;
-    margin: 0 auto;
-    height: 100%;
-    display: grid;
-    grid-template-rows: auto auto 1fr;
-    gap: 15px;
+  border-radius: 8px;
+  max-width: 800px;
+  margin: 0 auto;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 15px;
 }
 
 .window-shadow {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .content-wrapper {
-    display: grid;
-    grid-template-rows: auto auto 1fr;
-    gap: 15px;
-    overflow: auto;
-    position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 15px;
+  overflow-y: auto;
+  position: relative;
+  min-height: 0; /* Important for Grid scrolling */
+  height: 100%; /* Fill available space */
+  padding-right: 8px; /* Give some space for the scrollbar */
 }
-
-
 .input-wrapper {
-    position: relative;
-    display: block;
-    height: 250px; 
-    margin-bottom: 8px;
+  position: relative;
+  display: block;
+  height: 250px;
+  margin-bottom: 8px;
+  overflow: hidden; /* Contain the absolute positioned elements */
+  min-height: 150px;
+  max-height: 400px; /* Add a max height to prevent excessive expansion */
+
 }
 
-textarea, .overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #2d2d2d;
-    color: #e0e0e0;
-    border: 1px solid #404040;
-    border-radius: 4px;
-    padding: 8px;
-    font-family: inherit;
-    font-size: inherit;
-    line-height: 1.5;
-    box-sizing: border-box;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-y: auto;
-    margin: 0;
+.input-wrapper:focus-within {
+  border-color: var(--app-accent);
+}
+
+textarea,
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: calc(100% - 8px);
+  height: 100%;
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-y: scroll;
+  margin: 0;
+  scrollbar-gutter: stable;
 }
 
 textarea {
-    resize: none;
-    z-index: 2;
-    background: transparent;
+  resize: none;
+  z-index: 1;
+  background: var(--content-bg);
+  overflow-y: auto;
 }
+
 
 .overlay {
-    pointer-events: none;
-    z-index: 1;
-    border-color: transparent;
-    color: transparent;
-    background: transparent;
+  pointer-events: none;
+  z-index: 2;
+  border-color: transparent;
+  color: transparent;
+  background: transparent !important;
+  /* Critical fix for highlight clipping */
+  position: absolute;
+  height: auto; /* Allow content to determine height */
+  min-height: 100%; /* Ensure it fills the container */
+  bottom: 0; /* Extend to bottom */
 }
 
+
 .overlay .mark-sensitive {
-    color: transparent;
+  color: transparent;
 }
 
 textarea:focus {
-    outline: none;
-    border-color: var(--app-accent);
+  outline: none;
+  border-color: var(--app-accent);
 }
 
 .mark-sensitive {
-    background-color: rgba(255, 0, 0, 0.2);
-    border-radius: 2px;
+  background-color: rgba(147, 112, 219, 0.25); /* Lavender Dream */
+  border-radius: 2px;
+}
+
+.mark-sensitive-alt1 {
+  background-color: rgba(64, 224, 208, 0.2); /* Ocean Mist */
+  border-radius: 2px;
+}
+
+.mark-sensitive-alt2 {
+  background-color: rgba(255, 223, 0, 0.15); /* Sunset Gold */
+  border-radius: 2px;
+}
+
+.mark-sensitive-alt3 {
+  background-color: rgba(135, 206, 250, 0.2); /* Sky Blue */
+  border-radius: 2px;
+}
+
+.mark-sensitive-alt4 {
+  background-color: rgba(255, 127, 80, 0.2); /* Coral Glow */
+  border-radius: 2px;
+}
+
+.mark-sensitive-alt5 {
+  background-color: rgba(152, 251, 152, 0.15); /* Mint Leaf */
+  border-radius: 2px;
+}
+
+.mark-sensitive-alt6 {
+  background-color: rgba(255, 182, 193, 0.2); /* Rose Petal */
+  border-radius: 2px;
+}
+
+.mark-sensitive-alt7 {
+  background-color: rgba(255, 218, 185, 0.15); /* Peach Sorbet */
+  border-radius: 2px;
 }
 
 #output {
-    background: #2d2d2d;
-    padding: 15px;
-    border-radius: 5px;
-    color: var(--app-text);
-    font-family: monospace;
-    overflow-y: auto;
-    margin-top: 8px;
+  background: var(--content-bg);
+  padding: 15px;
+  border-radius: 5px;
+  color: var(--app-text);
+  font-family: monospace;
+  overflow-y: auto;
+  margin-top: 8px;
+  min-height: 100px;
 }
 
 #analyzeBtn {
-    margin-top: 0px;
+  margin-top: 0px;
 }
 
 button {
-    padding: 8px 16px;
-    background: #004c99;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    width: fit-content;
+  padding: 8px 16px;
+  background: #004c99;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  width: fit-content;
 }
 
 button:disabled {
-    background: #404040;
-    cursor: not-allowed;
+  background: #404040;
+  cursor: not-allowed;
 }
 
 #status {
-    color: #a0a0a0;
+  color: #a0a0a0;
 }
 
 h1 {
-    color: var(--app-accent);
-    margin: 0;
-    text-align: center;
+  color: var(--app-accent);
+  margin: 0;
+  text-align: center;
 }

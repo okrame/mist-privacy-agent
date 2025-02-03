@@ -7,11 +7,33 @@ You are a specialized AI assistant trained to analyze text for personal attribut
 IMPORTANT: Only include attributes in your JSON output where you can make a reasonable inference. There can be more than one inferred attribute. Skip attributes entirely if there's insufficient evidence.
 `;
 
+// const agent1SystemPrompt = `You are an analytical AI trained to infer personal attributes from text through careful reasoning.
+
+// For each identified attribute, provide:
+// - estimate: your inferred value
+// - confidence: 1-5 (5 being highest)
+// - analysis: key phrases supporting your inference
+// - explanation: brief logical reasoning chain
+// - proposal: suggested rephrasing for privacy
+
+// Think step-by-step. 
+// Remember: There can be more than one attribute to be inferred`
+
 let llama = null;
 let model = null;
 let jsonGrammar = null;
 
-const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.gguf";
+const testmodel = "unsloth.llama3b.Q8_0.fulljson.proposals.gguf"
+//const testmodel = "unsloth.llama3b.Q4_K_M.fulljson.proposals.gguf"
+
+// bad - they Allucinates!
+//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf";
+//const testmodel = "unsloth.llama3b.Q8_0.smalljson.proposals.gguf"; 
+
+
+//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.gguf"; // still the most reliable!!!!!
+
+
 
 function getModelStatus() {
   return { ready: model !== null && llama !== null };
@@ -46,7 +68,10 @@ async function initializeLlama() {
           : path.join(__dirname, '../../models'), 
         testmodel
       ),
-      contextSize: 1024,
+      contextSize: 2048,
+      //temperature: 0.1,
+      //topP: 0.9,// default is 0.95, allow the model to consider a good range of relevant tokens while filtering out unlikely ones,
+      //repeat_penalty: 1.1, // Avoid repetitive analysis
       encoding: 'utf8' 
     });
     console.log('Model loaded successfully');

@@ -25,7 +25,8 @@ async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
           enableRemoteModule: false,
           preload: path.join(__dirname, '../../.webpack/main/preload.js'),
           webSecurity: true,
-          sandbox: true
+          sandbox: true,
+          scrollBounce: process.platform === 'darwin'
       }
   });
 

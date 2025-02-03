@@ -2,6 +2,104 @@ export function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const findBestMatch = (phrase, text) => {
+    // Special case for single words
+    if (!phrase.includes(' ')) {
+        const phraseRegex = new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'i');
+        const match = text.match(phraseRegex);
+        if (match) {
+            return {
+                found: true,
+                text: match[0],
+                startIndex: match.index,
+                length: match[0].length
+            };
+        }
+    }
+
+    // Existing phrase matching logic
+    const phraseWords = phrase.toLowerCase().split(/\s+/);
+    const textWords = text.toLowerCase().split(/\s+/);
+
+    let maxMatchLength = 0;
+    let bestMatchStart = -1;
+    let bestMatchEnd = -1;
+
+    const MIN_MATCH_WORDS = phraseWords.length === 1 ?
+        1 : // Single word requires exact match
+        Math.ceil(phraseWords.length * 0.7); // Multiple words require 70% match
+
+    const MAX_MATCH_DISTANCE = phraseWords.length === 1 ?
+        0 : // Single word requires exact match
+        1;  // Multiple words allow small variations
+
+    for (let i = 0; i < textWords.length; i++) {
+        let matchCount = 0;
+        let lastMatchIndex = -1;
+
+        for (let j = 0; j < phraseWords.length && (i + j) < textWords.length; j++) {
+            const textWord = textWords[i + j];
+            const phraseWord = phraseWords[j];
+
+            if (textWord.includes(phraseWord) ||
+                phraseWord.includes(textWord) ||
+                levenshteinDistance(textWord, phraseWord) <= MAX_MATCH_DISTANCE) {
+                matchCount++;
+                lastMatchIndex = j;
+            }
+        }
+
+        if (matchCount >= MIN_MATCH_WORDS && lastMatchIndex > maxMatchLength) {
+            maxMatchLength = lastMatchIndex;
+            bestMatchStart = i;
+            bestMatchEnd = i + lastMatchIndex;
+        }
+    }
+
+    if (bestMatchStart !== -1) {
+        const matchedText = textWords.slice(bestMatchStart, bestMatchEnd + 1);
+        const fullTextLower = text.toLowerCase();
+        const matchSequence = matchedText.join(' ').toLowerCase();
+        const startIndex = fullTextLower.indexOf(matchSequence);
+
+        if (startIndex !== -1) {
+            return {
+                found: true,
+                text: text.slice(startIndex, startIndex + matchSequence.length),
+                startIndex: startIndex,
+                length: matchSequence.length
+            };
+        }
+    }
+
+    return { found: false };
+};
+
+// for word similarity
+function levenshteinDistance(str1, str2) {
+    const m = str1.length;
+    const n = str2.length;
+    const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (str1[i - 1] === str2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = Math.min(
+                    dp[i - 1][j - 1] + 1,
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1
+                );
+            }
+        }
+    }
+    return dp[m][n];
+}
+
 export function extractExplanation(text) {
     // Extract explanations for each attribute with proper handling of escaped quotes
     const attributePattern = /"([^"]+)":\s*{[^}]*"explanation":\s*"((?:[^"\\]|\\"|\\)*?)"/g;
@@ -24,122 +122,126 @@ export function extractExplanation(text) {
 }
 
 
-export function highlightPhrases(text, phrases) {
+// Map of attributes to their corresponding CSS classes
+const attributeClassMap = {
+    'age': 'mark-sensitive',
+    'sex': 'mark-sensitive-alt1',
+    'city_country': 'mark-sensitive-alt2',
+    'birth_city_country': 'mark-sensitive-alt3',
+    'education': 'mark-sensitive-alt4',
+    'occupation': 'mark-sensitive-alt5',
+    'relationship_status': 'mark-sensitive-alt6',
+    'income_level': 'mark-sensitive-alt7'
+};
+
+const allHighlightClasses = [
+    'mark-sensitive',
+    'mark-sensitive-alt1',
+    'mark-sensitive-alt2',
+    'mark-sensitive-alt3',
+    'mark-sensitive-alt4',
+    'mark-sensitive-alt5',
+    'mark-sensitive-alt6',
+    'mark-sensitive-alt7'
+];
+
+const dynamicAttributeMap = new Map();
+
+function getHighlightClass(attribute, usedAttributes) {
+    if (attributeClassMap[attribute]) {
+        return attributeClassMap[attribute];
+    }
+
+    if (dynamicAttributeMap.has(attribute)) {
+        return dynamicAttributeMap.get(attribute);
+    }
+
+    // Get all classes currently in use by the standard and dynamic attributes
+    const usedClasses = new Set([
+        ...Object.entries(attributeClassMap)
+            .filter(([key]) => usedAttributes.includes(key))
+            .map(([_, value]) => value),
+        ...Array.from(dynamicAttributeMap.values())
+    ]);
+
+    const availableClasses = allHighlightClasses.filter(cls => !usedClasses.has(cls));
+
+    // Randomly select one of the available classes
+    const randomIndex = Math.floor(Math.random() * availableClasses.length);
+    const selectedClass = availableClasses[randomIndex] || 'mark-sensitive'; // Fallback if no classes available
+    dynamicAttributeMap.set(attribute, selectedClass);
+
+    return selectedClass;
+}
+
+
+export function highlightPhrases(text, phrases, attributePhrases) {
     if (!phrases.length) return text;
 
     const tempDiv = document.createElement('div');
     tempDiv.textContent = text;
 
-    // Split phrase into words
-    const getWords = (phrase) => phrase.toLowerCase().split(/\s+/);
+    // Get all attributes currently in use
+    const usedAttributes = Object.keys(attributePhrases);
 
-    // Create a pattern that matches the phrase with some flexibility
-    const createPhrasePattern = (phrase, words) => {
-        // Create pattern parts for each word
-        const wordPatterns = words.map(word => `\\b${escapeRegExp(word)}\\b`);
-
-        // Join with flexible whitespace
-        const strictPattern = wordPatterns.join('\\s+');
-
-        // For partial matches (when some words are missing/different)
-        // we'll create patterns that match consecutive pairs of words
-        const partialPatterns = [];
-        for (let i = 0; i < words.length - 1; i++) {
-            partialPatterns.push(
-                `\\b${escapeRegExp(words[i])}\\b\\s+\\b${escapeRegExp(words[i + 1])}\\b`
-            );
+    const getAttributeForPhrase = (phrase) => {
+        for (const [attr, phraseList] of Object.entries(attributePhrases)) {
+            if (phraseList.includes(phrase)) {
+                return attr;
+            }
         }
-
-        return {
-            strict: new RegExp(strictPattern, 'gi'),
-            partial: partialPatterns.map(p => new RegExp(p, 'gi'))
-        };
+        return null;
     };
 
-    // Process each phrase
+    const matches = [];
+
     phrases.forEach(phrase => {
         if (!phrase) return;
 
-        // Handle complete sentences (including punctuation)
-        const isFullSentence = /[.!?]$/.test(phrase);
-        if (isFullSentence) {
-            // Create a safe pattern that includes possible punctuation
-            const safePhrasePattern = new RegExp(escapeRegExp(phrase), 'gi');
-            const textContent = tempDiv.textContent;
+        const attribute = getAttributeForPhrase(phrase);
+        const highlightClass = attribute ? 
+            getHighlightClass(attribute, usedAttributes) : 
+            'mark-sensitive';
 
-            // Wrap the entire matched sentence in a span
-            tempDiv.innerHTML = textContent.replace(safePhrasePattern, match =>
-                `<span class="mark-sensitive">${match}</span>`
-            );
-            return;
-        }
+        const bestMatch = findBestMatch(phrase, tempDiv.textContent);
 
-        // Original word-by-word processing for non-sentence phrases
-        const words = getWords(phrase);
-        const patterns = createPhrasePattern(phrase, words);
+        if (bestMatch.found) {
+            const overlaps = matches.some(existingMatch => {
+                const newStart = bestMatch.startIndex;
+                const newEnd = bestMatch.startIndex + bestMatch.length;
+                const existingStart = existingMatch.startIndex;
+                const existingEnd = existingMatch.startIndex + existingMatch.length;
 
-        // Use TreeWalker to find text nodes
-        const walker = document.createTreeWalker(
-            tempDiv,
-            NodeFilter.SHOW_TEXT,
-            null,
-            false
-        );
+                return (newStart >= existingStart && newStart <= existingEnd) ||
+                    (newEnd >= existingStart && newEnd <= existingEnd) ||
+                    (existingStart >= newStart && existingStart <= newEnd);
+            });
 
-        const nodes = [];
-        let node;
-        while (node = walker.nextNode()) {
-            nodes.push(node);
-        }
-
-        // Try strict match first
-        let matches = [];
-        nodes.forEach(textNode => {
-            if (!textNode.parentNode) return; // Skip if no parent node
-
-            const strictMatches = [...textNode.textContent.matchAll(patterns.strict)];
-            if (strictMatches.length) {
-                matches.push({ node: textNode, matches: strictMatches, type: 'strict' });
-                return;
+            if (!overlaps) {
+                matches.push({
+                    startIndex: bestMatch.startIndex,
+                    length: bestMatch.length,
+                    class: highlightClass,
+                    text: bestMatch.text
+                });
             }
-
-            // If no strict match, try partial matches
-            patterns.partial.forEach(pattern => {
-                const partialMatches = [...textNode.textContent.matchAll(pattern)];
-                if (partialMatches.length) {
-                    matches.push({ node: textNode, matches: partialMatches, type: 'partial' });
-                }
-            });
-        });
-
-        // Process matches in reverse order
-        matches.reverse().forEach(({ node: textNode, matches: textMatches, type }) => {
-            if (!textNode.parentNode) return; // Skip if no parent node
-
-            textMatches.reverse().forEach(match => {
-                const span = document.createElement('span');
-                span.className = 'mark-sensitive';
-                if (type === 'partial') {
-                    span.classList.add('partial-match');
-                }
-
-                const before = textNode.textContent.substring(0, match.index);
-                const after = textNode.textContent.substring(match.index + match[0].length);
-
-                const beforeNode = document.createTextNode(before);
-                const afterNode = document.createTextNode(after);
-
-                span.textContent = match[0];
-
-                const parent = textNode.parentNode;
-                parent.insertBefore(beforeNode, textNode);
-                parent.insertBefore(span, textNode);
-                parent.insertBefore(afterNode, textNode);
-                parent.removeChild(textNode);
-            });
-        });
+        }
     });
 
+    // Sort matches by start index in reverse order (to handle overlapping matches)
+    matches.sort((a, b) => b.startIndex - a.startIndex);
+
+    // Apply highlights
+    let content = tempDiv.textContent;
+    matches.forEach(match => {
+        const before = content.substring(0, match.startIndex);
+        const matchText = content.substring(match.startIndex, match.startIndex + match.length);
+        const after = content.substring(match.startIndex + match.length);
+
+        content = `${before}<span class="${match.class}">${matchText}</span>${after}`;
+    });
+
+    tempDiv.innerHTML = content;
     return tempDiv.innerHTML;
 }
 

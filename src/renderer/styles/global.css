@@ -1,8 +1,9 @@
 :root {
     --app-bg: #1a1a1a;
-    --app-text: #e0e0e0;
+    --app-text: #E8E8E8;
     --app-border: #404040;
     --app-accent: #4a9eff;
+    --content-bg: #252829;
 }
 
 body {
@@ -13,11 +14,37 @@ body {
     color: var(--app-text);
     -webkit-app-region: drag;
     border-radius: 8px;
-    overflow: hidden;
     height: 100vh;
     box-sizing: border-box;
 }
 
 button, textarea {
     -webkit-app-region: no-drag;
+}
+
+.mode-toggle, .toggle-switch, .slider, .toggle-label {
+    -webkit-app-region: no-drag !important;
+  }
+
+* {
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+        background-color: transparent;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: var(--app-bg);
+        border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: var(--app-border);
+        border-radius: 4px;
+        border: 2px solid var(--app-bg);
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: var(--app-accent);
+    }
 }

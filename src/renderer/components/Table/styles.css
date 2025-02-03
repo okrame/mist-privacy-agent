@@ -1,8 +1,10 @@
 /* Analysis Table Styles */
 .analysis-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate; /* Change from collapse to separate */
+    border-spacing: 0; /* Keep cells together */
     margin-bottom: 8px;
+    table-layout: fixed;
 
 }
 
@@ -20,7 +22,7 @@
 
 /* Row styles */
 .data-row td {
-    background-color: var(--app-bg);
+    background-color: var(--content-bg);
 }
 
 .personal-data-cell {
@@ -69,17 +71,19 @@
 
 .expandable-row td {
     padding: 12px 8px !important;
-    background-color: #262626;
+    background: var(--content-bg);
     max-height: 300px; 
     position: relative; 
+    box-sizing: border-box;
 }
 
 /* Content box styles */
 .content-box {
     width: 100%;
-    background: #2d2d2d;
+    background: var(--content-bgg);
     color: var(--app-text);
     padding: 8px;
+    padding-right: 16px;
     border-radius: 4px;
     font-family: inherit;
     font-size: 14px;
@@ -88,6 +92,8 @@
     overflow-y: auto; /* Add vertical scroll */
     word-wrap: break-word; /* Ensure text wraps */
     -webkit-app-region: no-drag;
+    border: 1px solid var(--app-border);
+    box-sizing: border-box;
 }
 
 .content-box-wrapper {
@@ -96,24 +102,27 @@
     border-radius: 4px;
     overflow: hidden;
     -webkit-app-region: no-drag;  /* Allow scrolling */
+    padding-right: 8px; /* Add padding for scrollbar */
+    box-sizing: border-box; /* Ensure padding is included in width */
 }
 
 /* Ensure scrollbar is visible and clickable */
 .content-box::-webkit-scrollbar {
     width: 8px;
+    height: 8px;
+    background-color: transparent;
 }
-
 .content-box::-webkit-scrollbar-track {
     background: #1a1a1a;
     border-radius: 4px;
 }
 
 .content-box::-webkit-scrollbar-thumb {
-    background: #404040;
+    background: var(--app-border); 
     border-radius: 4px;
+    border: 2px solid var(--app-bg);
 }
 
 .content-box::-webkit-scrollbar-thumb:hover {
-    background: #4a9eff;
+    background: var(--app-accent);
 }
-

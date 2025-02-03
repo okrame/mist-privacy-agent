@@ -3,8 +3,9 @@ import './styles.css';
 
 const SidePanel = forwardRef(({ mainContainerRef }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [phrases, setPhrases] = useState([]);
-  
+
   // Refs per accedere agli elementi DOM
   const panelRef = useRef(null);
 
@@ -30,19 +31,34 @@ const SidePanel = forwardRef(({ mainContainerRef }, ref) => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isExpanded]);
 
-  // Aggiorna le classi del container principale quando cambia isExpanded
+  //Aggiorna le classi del container principale quando cambia isExpanded
   useEffect(() => {
     if (mainContainerRef.current) {
       mainContainerRef.current.classList.toggle('panel-expanded', isExpanded);
     }
   }, [isExpanded, mainContainerRef]);
 
+  // useEffect(() => {
+  //   // Force scroll sync when panel state changes
+  //   if (mainContainerRef.current) {
+  //     const textarea = mainContainerRef.current.querySelector('textarea');
+  //     const overlay = mainContainerRef.current.querySelector('.overlay');
+  //     if (textarea && overlay) {
+  //       overlay.scrollTop = textarea.scrollTop;
+  //       overlay.scrollLeft = textarea.scrollLeft;
+  //     }
+  //   }
+  // }, [isExpanded, mainContainerRef]);
+
+
   const togglePanel = () => {
     setIsExpanded(prev => !prev);
   };
 
+
+
   return (
-    <div 
+    <div
       ref={panelRef}
       className={`side-panel ${isExpanded ? 'expanded' : ''}`}
     >
@@ -59,7 +75,7 @@ const SidePanel = forwardRef(({ mainContainerRef }, ref) => {
       </button>
 
       <div className="side-panel-header">
-        <span>Highlighted Words</span>
+        <span>Summary</span>
       </div>
 
       <div className="side-panel-content">
