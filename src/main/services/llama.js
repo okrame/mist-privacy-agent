@@ -23,15 +23,10 @@ let llama = null;
 let model = null;
 let jsonGrammar = null;
 
-// long response 
-//const testmodel = "unsloth.llama3b.Q8_0.fulljson.proposals.gguf"
-//const testmodel = "unsloth.llama3b.Q4_K_M.fulljson.proposals.gguf"
 
-// bad - they Allucinates!
-//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf";
-//const testmodel = "unsloth.llama3b.Q8_0.smalljson.proposals.gguf"; 
+// Models
 
-
+//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf"; // THIS IS GOOD, but needs refactoring extraction code
 const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.gguf"; // still the most reliable!!!!!
 
 

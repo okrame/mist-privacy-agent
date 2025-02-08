@@ -275,7 +275,7 @@ const App = () => {
             onClick={handleAnalyze}
             disabled={!modelReady || isAnalyzing}
           >
-            Size up!
+            X-Ray
           </button>
           <Spinner visible={isAnalyzing} />
         </div>
