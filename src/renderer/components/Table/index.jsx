@@ -70,8 +70,8 @@ export const AnalysisTable = ({ data, expandedRowId, onToggleRow }) => {
     <table className="analysis-table">
       <thead>
         <tr>
-          <th>Predicted Data</th>
-          <th>Confidence</th>
+          <th>Exposed Data</th>
+          <th>Criticality</th>
         </tr>
       </thead>
       <tbody>

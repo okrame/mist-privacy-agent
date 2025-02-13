@@ -1,6 +1,6 @@
 // Spinner.jsx
 import React from 'react';
-import './spinner.css'; 
+import './styles.css'; 
 
 const Spinner = ({ visible }) => {
   if (!visible) return null;

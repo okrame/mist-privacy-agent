@@ -3,32 +3,61 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('privacyAPI', {
   analyzeText: (text, onChunk) => {
     return new Promise((resolve, reject) => {
-      // Setup chunk listener
       const chunkHandler = (_event, chunk) => {
         onChunk(chunk);
       };
       
-      // Setup completion listener
       const completionHandler = (_event, result) => {
         ipcRenderer.removeListener('analysisChunk', chunkHandler);
         resolve(result);
       };
 
-      // Setup error listener
       const errorHandler = (_event, error) => {
         ipcRenderer.removeListener('analysisChunk', chunkHandler);
         reject(error);
       };
 
-      // Register listeners
       ipcRenderer.on('analysisChunk', chunkHandler);
       ipcRenderer.once('analysisComplete', completionHandler);
       ipcRenderer.once('analysisError', errorHandler);
 
-      // Start the analysis
       ipcRenderer.invoke('analyzeText', text);
     });
   },
+
+
+  // Add these to the existing privacyAPI object
+processPrivacy: (text, attributes) => {
+  return new Promise((resolve, reject) => {
+    const completionHandler = (_event, result) => {
+      resolve(result.data);
+    };
+
+    const errorHandler = (_event, error) => {
+      reject(error);
+    };
+
+    ipcRenderer.once('privacyComplete', completionHandler);
+    ipcRenderer.once('privacyError', errorHandler);
+    ipcRenderer.invoke('processPrivacy', { text, attributes });
+  });
+},
+
+onPrivacyModelStatus: (callback) => {
+  ipcRenderer.send('getPrivacyModelStatus');
+  ipcRenderer.on('privacyModelStatus', (_event, status) => {
+    callback(status);
+  });
+},
+
+checkPrivacyModelStatus: () => {
+  return new Promise((resolve) => {
+    ipcRenderer.once('privacyModelStatus', (_event, status) => {
+      resolve(status);
+    });
+    ipcRenderer.send('getPrivacyModelStatus');
+  });
+},
   onModelStatus: (callback) => {
     console.log('Setting up model status listener');
     
@@ -41,8 +70,12 @@ contextBridge.exposeInMainWorld('privacyAPI', {
     });
     
     window.addEventListener('unload', () => {
-        ipcRenderer.removeAllListeners('modelStatus');
-    });
+      ipcRenderer.removeAllListeners('modelStatus');
+      ipcRenderer.removeAllListeners('privacyModelStatus');
+      ipcRenderer.removeAllListeners('privacyComplete');
+      ipcRenderer.removeAllListeners('privacyError');
+      ipcRenderer.removeAllListeners('privacyChunk');
+  });
   },
   // a method to request current status
   checkModelStatus: () => {

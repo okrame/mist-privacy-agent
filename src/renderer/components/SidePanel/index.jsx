@@ -4,14 +4,20 @@ import './styles.css';
 const SidePanel = forwardRef(({ mainContainerRef }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [phrases, setPhrases] = useState([]);
+  const [suggestions, setSuggestions] = useState({});
   const panelRef = useRef(null);
 
+  
   useImperativeHandle(ref, () => ({
     updateContent: (newPhrases) => {
       setPhrases(newPhrases || []);
     },
+    updateSuggestions: (newSuggestions) => {
+      setSuggestions(newSuggestions || {});
+    },
     clear: () => {
       setPhrases([]);
+      setSuggestions({});
     }
   }));
 
@@ -70,11 +76,29 @@ const SidePanel = forwardRef(({ mainContainerRef }, ref) => {
 
       <div className="side-panel-content">
         {phrases.length > 0 ? (
-          phrases.map((phrase, index) => (
-            <div key={`${phrase}-${index}`} className="highlighted-word">
-              {phrase}
-            </div>
-          ))
+          phrases.map((phrase, index) => {
+            // Find the attribute and suggestion for this phrase
+            let suggestionText = null;
+            Object.entries(suggestions).forEach(([attr, items]) => {
+              const match = items.find(item => item.original === phrase);
+              if (match) {
+                suggestionText = match.suggestion;
+              }
+            });
+
+            return (
+              <div key={`${phrase}-${index}`} className="phrase-container">
+                <div className="highlighted-word original">
+                  {phrase}
+                </div>
+                {suggestionText && (
+                  <div className="highlighted-word suggestion">
+                    → {suggestionText}
+                  </div>
+                )}
+              </div>
+            );
+          })
         ) : (
           <div className="highlighted-word">No highlighted words found</div>
         )}

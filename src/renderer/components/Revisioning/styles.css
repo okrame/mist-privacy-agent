@@ -1,0 +1,218 @@
+.revisioning-editor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  display: grid;
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding-right: 52px;
+}
+
+
+/* Both layers share the same grid cell */
+.revisioning-editor > * {
+  grid-area: 1 / 1 / 2 / 2;
+  width: calc(100% + 32px);
+  margin: 0;
+  padding: 8px;
+  font: inherit;
+  line-height: 1.5;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.revisioning-textarea {
+  background: transparent;
+  border: none;
+  color: transparent;
+  caret-color: var(--app-text);
+  resize: none;
+  z-index: 1;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  transform: translateZ(0);
+  min-height: 0;
+  overflow-y: hidden; 
+}
+
+.revisioning-content {
+  color: var(--app-text);
+  pointer-events: none;
+  z-index: 2;
+  user-select: none;
+  transform: translateZ(0);
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.revisioning-text {
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+
+.revisioning-phrase {
+  border-radius: 2px;
+  padding: 2px;
+  margin: -2px;
+  cursor: pointer;
+  pointer-events: auto !important; /* Reenable pointer events only for phrases */
+  white-space: pre-wrap;
+  word-break: keep-all;
+  position: relative;
+  display: inline;
+}
+
+.revisioning-phrase.replaced {
+  background: none !important;
+  border-bottom: 1px solid var(--app-text);
+  transition: border-color 0.2s ease;
+}
+
+.revisioning-phrase.replaced:hover {
+  border-bottom-color: var(--app-accent);
+}
+
+.revisioning-phrase.hovered {
+  outline: 1px solid var(--app-accent);
+}
+
+.revisioning-suggestion {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--app-bg);
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+.revisioning-phrase:hover .revisioning-suggestion {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.suggestion-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.suggestion-text.private {
+  color: var(--app-accent);
+}
+
+.suggestion-text.original {
+  color: var(--app-text);
+}
+
+.revert-icon {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+  margin-left: 4px;
+}
+
+.revert-icon:hover {
+  opacity: 1;
+}
+
+
+/* Only show one scrollbar */
+.revisioning-textarea::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  right: -204px;
+}
+
+.revisioning-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.revisioning-textarea::-webkit-scrollbar-thumb {
+  background: var(--app-border);
+  border-radius: 4px;
+  border: 2px solid var(--app-bg);
+}
+
+.revisioning-textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--app-accent);
+}
+/* Hide content scrollbar but keep functionality */
+.revisioning-content::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Attribute-specific highlighting with improved transitions */
+.revisioning-phrase.mark-sensitive {
+  background-color: rgba(var(--highlight-primary-rgb), 0.3);
+  transition: background-color 0.2s ease;
+}
+
+.revisioning-phrase.mark-sensitive:hover {
+  background-color: rgba(var(--highlight-primary-rgb), 0.5);
+}
+
+.revisioning-phrase.mark-sensitive-age {
+  background-color: rgba(var(--highlight-primary-rgb), 0.3);
+}
+
+.revisioning-phrase.mark-sensitive-sex {
+  background-color: rgba(var(--highlight-alt1-rgb), 0.3);
+}
+
+.revisioning-phrase.mark-sensitive-city_country {
+  background-color: rgba(var(--highlight-alt2-rgb), 0.3);
+}
+
+.revisioning-phrase.mark-sensitive-birth_city_country {
+  background-color: rgba(var(--highlight-alt3-rgb), 0.3);
+}
+
+.revisioning-phrase.mark-sensitive-education {
+  background-color: rgba(var(--highlight-alt4-rgb), 0.3);
+}
+
+.revisioning-phrase.mark-sensitive-occupation {
+  background-color: rgba(var(--highlight-alt5-rgb), 0.3);
+}
+
+.revisioning-phrase.mark-sensitive-relationship_status {
+  background-color: rgba(var(--highlight-alt6-rgb), 0.3);
+}
+
+.revisioning-phrase.mark-sensitive-income_level {
+  background-color: rgba(var(--highlight-alt7-rgb), 0.3);
+}
+
+/* Hover states for all sensitive marks */
+.revisioning-phrase[class*="mark-sensitive"]:hover {
+  background-color: rgba(var(--highlight-primary-rgb), 0.5);
+}
+
+/* Group hover utilities */
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1 !important;
+}

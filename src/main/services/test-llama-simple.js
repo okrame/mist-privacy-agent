@@ -34,24 +34,27 @@ async function runChatTest() {
     });
 
     // Create JSON schema grammar
-    const grammar = await llama.createGrammarForJsonSchema({
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        thinking: {
-          type: "string",
-          description: "Your reasoning process"
-        },
-        response: {
-          type: "string", 
-          description: "The privacy-preserving version of the text"
-        }
-      },
-      required: ["thinking", "response"],
-      // Add these to ensure proper JSON formatting
-      additionalProperties: false,
-      $schema: "http://json-schema.org/draft-07/schema#"
-    });
+    // const grammar = await llama.createGrammarForJsonSchema({
+    //   type: "object",
+    //   additionalProperties: false,
+    //   properties: {
+    //     thinking: {
+    //       type: "string",
+    //       description: "Your reasoning process"
+    //     },
+    //     response: {
+    //       type: "string", 
+    //       description: "The privacy-preserving version of the text"
+    //     }
+    //   },
+    //   required: ["thinking", "response"],
+    //   // Add these to ensure proper JSON formatting
+    //   additionalProperties: false,
+    //   $schema: "http://json-schema.org/draft-07/schema#"
+    // });
+
+    // alternatively try
+    jsonGrammar = await llama.getGrammarFor("json");
 
     // Create context and session
     const context = await model.createContext();
@@ -71,7 +74,7 @@ async function runChatTest() {
       console.log('Starting response stream:');
       
       const response = await session.prompt(text, {
-        grammar,
+        jsonGrammar,
         onToken: (token) => {
           const decoded = model.detokenize([token]);
           //process.stdout.write(decoded); // Print raw tokens for debugging
@@ -91,10 +94,10 @@ async function runChatTest() {
         .replace(/\\+"/g, '\\"')        // Fix escaped quotes
         .trim();
         
-        const parsed = JSON.parse(cleanedText);
-        // Single, clean console output
-        console.log('\nReasoning:', parsed.thinking);
-        console.log('\nParsed proposal:', parsed.response);
+        // const parsed = JSON.parse(cleanedText);
+        // // Single, clean console output
+        // console.log('\nReasoning:', parsed.thinking);
+        // console.log('\nParsed proposal:', parsed.response);
 
       } catch (e) {
         console.error('Error parsing response:', e);

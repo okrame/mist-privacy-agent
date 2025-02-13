@@ -246,71 +246,56 @@ export function highlightPhrases(text, phrases, attributePhrases) {
 }
 
 export function processProposal(text, analysedWords) {
-    if (!text.includes('"proposal"') || !text.endsWith('}')) {
+    if (!text.includes('"inferable"') || !text.endsWith('}')) {
         return null;
     }
 
     try {
-        // Match the entire proposal text - modified pattern to handle escaped quotes
-        const proposalPattern = /"proposal"\s*:\s*"((?:[^"\\]|\\"|\\)*?)"/;
-        const proposalMatch = text.match(proposalPattern);
-
-        if (!proposalMatch) {
-            console.log("No proposal match found");
+        const data = JSON.parse(text);
+        
+        if (!data.inferable) {
             return null;
         }
 
-        const proposalText = proposalMatch[1];
-        console.log("Proposal text:", proposalText);
-
-        // Step 1: Extract all quoted phrases from proposal text
-        const quotedPattern = /\\"([^"\\]+)\\"/g;  // Pattern for escaped quotes
-        const allQuotedWords = [];
-        let match;
-
-        while ((match = quotedPattern.exec(proposalText)) !== null) {
-            allQuotedWords.push(match[1]);
-        }
-
-        console.log("All quoted words:", allQuotedWords);
-
-        // Step 2: Remove words that are in analysedWords to get replacementWords
-        const replacementWords = allQuotedWords.filter(word =>
-            !analysedWords.includes(word)
-        );
-
         const suggestions = {};
-        analysedWords.forEach((analysedWord, index) => {
-            suggestions[analysedWord] = [];
 
-            if (index < replacementWords.length) {
-                suggestions[analysedWord].push(replacementWords[index]);
-            }
+        // Process each inferable attribute
+        Object.entries(data.inferable).forEach(([attribute, info]) => {
+            if (!info.proposal) return;
 
-            if (index + 1 < replacementWords.length) {
-                suggestions[analysedWord].push(replacementWords[index + 1]);
-            }
+            try {
+                // Clean and parse the proposal string
+                const proposalStr = info.proposal
+                    .replace(/'/g, '"')
+                    .replace(/\[|\]/g, '')
+                    .split('},')
+                    .map(item => item.endsWith('}') ? item : item + '}')
+                    .filter(item => item.trim());
 
-            if (replacementWords.length < analysedWords.length && index > 0) {
-                const prevWord = replacementWords[index - 1];
-                if (prevWord && !suggestions[analysedWord].includes(prevWord)) {
-                    suggestions[analysedWord].unshift(prevWord);
-                }
+                // Process each replacement pair
+                proposalStr.forEach(itemStr => {
+                    const replacement = JSON.parse(itemStr);
+                    const { original, replacement: suggestionText } = replacement;
+
+                    if (analysedWords.includes(original)) {
+                        if (!suggestions[attribute]) {
+                            suggestions[attribute] = [];
+                        }
+                        suggestions[attribute].push({
+                            original,
+                            suggestion: suggestionText
+                        });
+                    }
+                });
+            } catch (e) {
+                console.error(`Error processing proposal for ${attribute}:`, e);
             }
         });
 
-        console.log("Original analysed words:", analysedWords);
-        console.log("Extracted replacement words:", replacementWords);
-        console.log("Mapped suggestions:", suggestions);
-
-        return {
-            analysedWords,
-            replacementWords,
-            suggestions
-        };
+        return suggestions;
 
     } catch (e) {
-        console.log("Error processing proposal:", e);
+        console.error("Error processing proposal:", e);
         return null;
     }
 }

@@ -130,6 +130,7 @@
     transition: opacity 0.2s ease;
 }
 
+
 .side-panel.expanded .side-panel-content {
     opacity: 1;
 }
@@ -165,4 +166,22 @@
 
 .app-container.panel-expanded {
     padding-right: 200px; /* Full panel width when expanded */
+}
+
+.phrase-container {
+  margin: 8px 0;
+}
+
+.highlighted-word.original {
+  margin-bottom: 2px;
+  background: #2d2d2d;
+}
+
+.highlighted-word.suggestion {
+  margin-left: 12px;
+  font-size: 12px;
+  padding: 6px 8px;
+  background: #1f1f1f;
+  color: #8a8a8a;
+  border-color: #363636;
 }

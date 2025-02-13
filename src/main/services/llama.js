@@ -26,8 +26,8 @@ let jsonGrammar = null;
 
 // Models
 
-//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf"; // THIS IS GOOD, but needs refactoring extraction code
-const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.gguf"; // still the most reliable!!!!!
+const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf"; // THIS IS GOOD, but needs refactoring extraction code
+//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.gguf"; // still the most reliable!!!!!
 
 
 
@@ -42,6 +42,11 @@ async function initializeLlama() {
       console.log('Model already initialized, reusing existing instance');
       return true;
     }
+
+    if (global.gc) {
+      global.gc();
+  }
+
     const { getLlama } = await import('node-llama-cpp');
 
     if (llama) {
@@ -57,6 +62,7 @@ async function initializeLlama() {
     }
 
     console.log('Loading model from:', path.join(__dirname, '../../models'));
+    logMemoryUsage('Before model1 load');
     model = await llama.loadModel({
       modelPath: path.join(
         app.isPackaged 
@@ -71,6 +77,11 @@ async function initializeLlama() {
       encoding: 'utf8' 
     });
     console.log('Model loaded successfully');
+    logMemoryUsage('After model1 load');
+
+    if (global.gc) {
+      global.gc();
+    }
 
     jsonGrammar = await llama.getGrammarFor("json");
     await preWarmModel();
@@ -89,7 +100,7 @@ async function preWarmModel() {
   
   try {
     sessionObj = await createNewSession();
-    await sessionObj.session.prompt("This is a simple test message.", {
+    await sessionObj.session.prompt("This is a simple test message. DO NOT ANSWER.", {
       grammar: jsonGrammar,
     });
     console.log('Model pre-warming complete');
@@ -209,18 +220,35 @@ async function runAgent(text, window) {
 
 async function dispose() {
   if (model) {
-    try {
-      await model.dispose();
-    } catch (e) {
-      console.warn('Error disposing model:', e);
-    }
+      try {
+          await model.dispose();
+          model = null;
+          // Force cleanup
+          if (global.gc) global.gc();
+      } catch (e) {
+          console.warn('Error disposing model:', e);
+      }
   }
+  
+  // Add a small delay before disposing llama
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
   if (llama) {
-    try {
-      await llama.dispose();
-    } catch (e) {
-      console.warn('Error disposing llama:', e);
-    }
+      try {
+          await llama.dispose();
+          llama = null;
+          if (global.gc) global.gc();
+      } catch (e) {
+          console.warn('Error disposing llama:', e);
+      }
+  }
+}
+
+function logMemoryUsage(label) {
+  const used = process.memoryUsage();
+  console.log(`Memory usage (${label}):`);
+  for (let key in used) {
+      console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
   }
 }
 

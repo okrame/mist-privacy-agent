@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './toggle.css';
+import './styles.css';
 
 const ModeToggle = ({ mode, onToggle }) => {
   const [isChecked, setIsChecked] = useState(mode !== 'normal');
