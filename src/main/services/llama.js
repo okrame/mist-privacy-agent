@@ -7,17 +7,10 @@ You are a specialized AI assistant trained to analyze text for personal attribut
 IMPORTANT: Only include attributes in your JSON output where you can make a reasonable inference. There can be more than one inferred attribute. Skip attributes entirely if there's insufficient evidence.
 `;
 
-// const agent1SystemPrompt = `You are an analytical AI trained to infer personal attributes from text through careful reasoning.
+// const agent1SystemPrompt = `You are a specialized AI assistant trained to analyze text for personal attribute inference and provide detailed analysis.
+// IMPORTANT: Only include attributes in your JSON output where you can make a reasonable inference. There can be more than one inferred attribute. Skip attributes entirely if there's insufficient evidence.
 
-// For each identified attribute, provide:
-// - estimate: your inferred value
-// - confidence: 1-5 (5 being highest)
-// - analysis: key phrases supporting your inference
-// - explanation: brief logical reasoning chain
-// - proposal: suggested rephrasing for privacy
-
-// Think step-by-step. 
-// Remember: There can be more than one attribute to be inferred`
+// IMPORTANT: You must answer keeping in mind that the user lives in Tallin`
 
 let llama = null;
 let model = null;

@@ -1,130 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { escapeRegExp, findMatches, findBestSuggestion } from '../../utils/utils';
 import './styles.css';
 
-// Helper functions moved together
-function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function levenshteinDistance(str1, str2) {
-    const m = str1.length;
-    const n = str2.length;
-    const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-
-    for (let i = 0; i <= m; i++) dp[i][0] = i;
-    for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-    for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-            if (str1[i - 1] === str2[j - 1]) {
-                dp[i][j] = dp[i - 1][j - 1];
-            } else {
-                dp[i][j] = Math.min(
-                    dp[i - 1][j - 1] + 1,
-                    dp[i - 1][j] + 1,
-                    dp[i][j - 1] + 1
-                );
-            }
-        }
-    }
-    return dp[m][n];
-}
-
-function findBestMatch(phrase, text) {
-    // 1. For single words, use strict word boundary matching
-    if (!phrase.includes(' ')) {
-        // Create regex that matches the exact word with boundaries
-        // This ensures "closes" doesn't match "close"
-        const wordRegex = new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'i');
-        const match = text.match(wordRegex);
-        if (match) {
-            return {
-                found: true,
-                text: match[0],
-                startIndex: match.index,
-                length: match[0].length
-            };
-        }
-        return { found: false };
-    }
-
-    // 2. For multi-word phrases, try exact phrase matching first
-    const exactRegex = new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'i');
-    const exactMatch = text.match(exactRegex);
-    if (exactMatch) {
-        return {
-            found: true,
-            text: exactMatch[0],
-            startIndex: exactMatch.index,
-            length: exactMatch[0].length
-        };
-    }
-
-    // 3. For multi-word phrases, try fuzzy matching with strict controls
-    const phraseWords = phrase.toLowerCase().split(/\s+/);
-    const textWords = text.toLowerCase().split(/\s+/);
-    
-    // Look for sequences that match our phrase
-    for (let i = 0; i <= textWords.length - phraseWords.length; i++) {
-        let allWordsMatch = true;
-        let sequence = '';
-        
-        for (let j = 0; j < phraseWords.length; j++) {
-            const textWord = textWords[i + j];
-            const phraseWord = phraseWords[j];
-            
-            // Words must match exactly for multi-word phrases
-            if (textWord !== phraseWord) {
-                allWordsMatch = false;
-                break;
-            }
-            sequence += (j === 0 ? '' : ' ') + textWord;
-        }
-        
-        if (allWordsMatch) {
-            // Find the actual position in original text
-            const startIndex = text.toLowerCase().indexOf(sequence);
-            if (startIndex !== -1) {
-                return {
-                    found: true,
-                    text: text.slice(startIndex, startIndex + sequence.length),
-                    startIndex: startIndex,
-                    length: sequence.length
-                };
-            }
-        }
-    }
-
-    return { found: false };
-}
-
-function findMatches(text, phrases, attributeMap) {
-    // Create a map of exact phrases for validation
-    const exactPhrases = new Map(phrases.map(p => [p.toLowerCase(), p]));
-    
-    let matches = [];
-    phrases.forEach(phrase => {
-        const match = findBestMatch(phrase, text);
-        if (match.found && exactPhrases.has(match.text.toLowerCase())) {
-            matches.push({
-                start: match.startIndex,
-                end: match.startIndex + match.length,
-                phrase: match.text,
-                attribute: attributeMap.get(phrase.toLowerCase())
-            });
-        }
-    });
-
-    // Sort and filter overlapping matches
-    return matches
-        .sort((a, b) => a.start - b.start)
-        .reduce((acc, match) => {
-            if (!acc.length || match.start >= acc[acc.length - 1].end) {
-                acc.push(match);
-            }
-            return acc;
-        }, []);
-}
 
 const Revisioning = ({
     text,
@@ -144,6 +21,7 @@ const Revisioning = ({
     const suggestionMap = {};
     const phraseAttributeMap = new Map();
     const reverseMap = {};
+    const relatedPhrasesMap = new Map();
 
     // Build maps
     Object.entries(attributePhrases).forEach(([attribute, phraseList]) => {
@@ -152,72 +30,31 @@ const Revisioning = ({
         });
     });
 
+    // Modified suggestion mapping to include fuzzy matching
     Object.entries(suggestions).forEach(([attribute, replacements]) => {
         replacements.forEach(({ original, suggestion }) => {
-            suggestionMap[original.toLowerCase()] = {
+            // Store the original phrase for fuzzy matching
+            const originalLower = original.toLowerCase();
+            suggestionMap[originalLower] = {
                 suggestion,
-                attribute
+                attribute,
+                originalPhrase: original // Keep the original case
             };
+
+            // Add reverse mapping
             reverseMap[suggestion.toLowerCase()] = {
                 original,
                 attribute
             };
-            phraseAttributeMap.set(suggestion.toLowerCase(), attribute);
+
+            // Create related phrases mapping
+            const relatedPhrases = replacements
+                .filter(r => r.suggestion === suggestion)
+                .map(r => r.original.toLowerCase());
+            relatedPhrasesMap.set(originalLower, relatedPhrases);
         });
     });
 
-    // Maintain cursor visibility
-    const maintainCursorVisibility = () => {
-        if (!textareaRef.current || !contentRef.current) return;
-    
-        const textarea = textareaRef.current;
-        const content = contentRef.current;
-        
-        // Force sync scroll positions first
-        content.scrollTop = textarea.scrollTop;
-        content.scrollLeft = textarea.scrollLeft;
-    
-        const cursorPosition = textarea.selectionStart;
-        if (cursorPosition === undefined) return;
-    
-        // Create a more precise measurement div
-        const temp = document.createElement('div');
-        temp.style.cssText = `
-            position: absolute;
-            visibility: hidden;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            width: ${getComputedStyle(textarea).width};
-            font: ${getComputedStyle(textarea).font};
-            padding: ${getComputedStyle(textarea).padding};
-            letter-spacing: ${getComputedStyle(textarea).letterSpacing};
-            box-sizing: border-box;
-        `;
-    
-        // Get the text up to cursor
-        const textUpToCursor = textarea.value.substring(0, cursorPosition);
-        temp.textContent = textUpToCursor;
-        document.body.appendChild(temp);
-    
-        const cursorTop = temp.offsetHeight;
-        document.body.removeChild(temp);
-    
-        const scrollTop = textarea.scrollTop;
-        const viewportHeight = textarea.offsetHeight;
-    
-        // Adjust scroll if cursor is out of view
-        if (cursorTop < scrollTop) {
-            const newScrollTop = Math.max(0, cursorTop - 20);
-            textarea.scrollTop = newScrollTop;
-            content.scrollTop = newScrollTop;
-        } else if (cursorTop > scrollTop + viewportHeight - 20) {
-            const newScrollTop = Math.max(0, cursorTop - viewportHeight + 40);
-            textarea.scrollTop = newScrollTop;
-            content.scrollTop = newScrollTop;
-        }
-    };
-
-    
 
     // Sync scrolling
     useEffect(() => {
@@ -284,47 +121,94 @@ const Revisioning = ({
             resizeObserver.disconnect();
         };
     }, []);
+
+
+    const findSuggestionForPhrase = (phrase) => {
+        return findBestSuggestion(phrase, suggestionMap);
+    };
+
     
 
     // Improved phrase interaction handlers
-    const handlePhraseClick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+   // Modified handlePhraseClick to use fuzzy matching
+   const handlePhraseClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-        const phraseElement = e.target.closest('.revisioning-phrase');
-        if (!phraseElement) return;
+    const phraseElement = e.target.closest('.revisioning-phrase');
+    if (!phraseElement) return;
 
-        const phrase = phraseElement.dataset.phrase;
-        const isReplaced = phraseElement.dataset.isReplaced === 'true';
-        const phraseLower = phrase.toLowerCase();
-        const map = isReplaced ? reverseMap : suggestionMap;
+    const phrase = phraseElement.dataset.phrase;
+    const isReplaced = phraseElement.dataset.isReplaced === 'true';
+    const phraseLower = phrase.toLowerCase();
 
-        if (map[phraseLower]) {
-            const replacement = isReplaced ? 
-                map[phraseLower].original : 
-                map[phraseLower].suggestion;
+    let matchData;
+    if (isReplaced) {
+        matchData = reverseMap[phraseLower];
+    } else {
+        matchData = findSuggestionForPhrase(phrase);
+    }
 
-            // Improved replacement logic with case preservationv
-            const newText = text.replace(
-                new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'gi'),
-                (match) => match[0] === match[0].toUpperCase() ?
-                    replacement.charAt(0).toUpperCase() + replacement.slice(1) :
-                    replacement
-            );
+    if (matchData) {
+        const replacement = isReplaced ? 
+            matchData.original : 
+            matchData.suggestion;
 
-            onTextChange(newText);
+        // Get related phrases that should be replaced together
+        const relatedPhrases = relatedPhrasesMap.get(phraseLower) || [phraseLower];
+        
+        let newText = text;
+        if (isReplaced) {
+            // Restore all related phrases to their originals
+            relatedPhrases.forEach(relatedPhrase => {
+                const originalPhrase = reverseMap[relatedPhrase]?.original || relatedPhrase;
+                newText = newText.replace(
+                    new RegExp(`\\b${escapeRegExp(relatedPhrase)}\\b`, 'gi'),
+                    originalPhrase
+                );
+            });
+        } else {
+            // Handle replacement with fuzzy matching
+            const positions = relatedPhrases.map(phrase => {
+                const match = findMatches(newText, [phrase], phraseAttributeMap)[0];
+                return match ? { 
+                    phrase, 
+                    index: match.start, 
+                    length: match.end - match.start 
+                } : null;
+            }).filter(Boolean).sort((a, b) => a.index - b.index);
 
-            // Update replaced phrases set
-            const newReplacedPhrases = new Set(replacedPhrases);
-            if (isReplaced) {
-                newReplacedPhrases.delete(phraseLower);
+            if (positions.length >= 2) {
+                // Replace sequence including intermediary text
+                const start = positions[0].index;
+                const end = positions[positions.length - 1].index + positions[positions.length - 1].length;
+                newText = newText.substring(0, start) + replacement + newText.substring(end);
             } else {
-                newReplacedPhrases.add(map[phraseLower].suggestion.toLowerCase());
+                // Single phrase replacement with fuzzy matching
+                const match = findMatches(newText, [phrase], phraseAttributeMap)[0];
+                if (match) {
+                    newText = newText.substring(0, match.start) + 
+                            replacement + 
+                            newText.substring(match.end);
+                }
             }
-            setReplacedPhrases(newReplacedPhrases);
         }
-    };
 
+        onTextChange(newText);
+
+        // Update replaced phrases set
+        const newReplacedPhrases = new Set(replacedPhrases);
+        if (isReplaced) {
+            relatedPhrases.forEach(p => newReplacedPhrases.delete(p));
+        } else {
+            relatedPhrases.forEach(p => newReplacedPhrases.add(p));
+        }
+        setReplacedPhrases(newReplacedPhrases);
+    }
+};
+
+
+    // Update hover handlers to use fuzzy matching
     const handlePhraseMouseEnter = (e) => {
         const phraseElement = e.target.closest('.revisioning-phrase');
         if (phraseElement) {
@@ -336,8 +220,7 @@ const Revisioning = ({
         setHoveredPhrase(null);
     };
 
-    // Render text with highlights
-    // Render text with improved interaction handling
+    // Modified renderText to use fuzzy matching for suggestions
     const renderText = () => {
         if (!text || phrases.length === 0) {
             return <div className="revisioning-text">{text}</div>;
@@ -358,9 +241,12 @@ const Revisioning = ({
 
             const phraseLower = match.phrase.toLowerCase();
             const isReplaced = replacedPhrases.has(phraseLower);
-            const suggestionText = isReplaced
-                ? reverseMap[phraseLower]?.original
-                : suggestionMap[phraseLower]?.suggestion;
+            const matchData = isReplaced
+                ? reverseMap[phraseLower]
+                : findSuggestionForPhrase(match.phrase);
+            const suggestionText = matchData
+                ? (isReplaced ? matchData.original : matchData.suggestion)
+                : null;
             const isHovered = match.phrase === hoveredPhrase;
             const attributeClass = match.attribute ? `mark-sensitive-${match.attribute}` : '';
 
@@ -410,14 +296,13 @@ const Revisioning = ({
 
         return segments;
     };
+
     return (
         <div className="revisioning-editor" ref={editorRef}>
             <div
                 ref={contentRef}
                 className="revisioning-content"
-                //style={{ pointerEvents: 'auto' }}
                 onMouseDown={(e) => {
-                    // Prevent text selection when clicking phrases
                     const phraseElement = e.target.closest('.revisioning-phrase');
                     if (phraseElement) {
                         e.preventDefault();

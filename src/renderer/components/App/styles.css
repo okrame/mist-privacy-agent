@@ -48,12 +48,12 @@
 }
 
 .button-spacer {
-  height: 56px;
-  min-height: 56px;
+  height: 52px;
+  min-height: 52px;
   position: relative;
   flex-shrink: 0;
   background-color: var(--content-bg); /* Match parent background */
-  margin-top: -1px; /* Remove gap between content and spacer */
+  margin-top: -10px; /* Remove gap between content and spacer */
 }
 
 * {
@@ -106,8 +106,8 @@ button {
 
 .send-button {
   position: absolute;
-  top: 12px;
-  right: -40px; /* Increased from 12px to account for scrollbar (8px) + padding */
+  top: 13px;
+  right: -45px;
   width: 32px !important;
   height: 32px !important;
   min-width: unset;
@@ -135,6 +135,36 @@ button {
   height: 16px;
   transform: rotate(-90deg);
 }
+
+/* New compact style for the Anon button */
+.anon-button {
+  position: absolute;
+  width: 52px !important;
+  height: 32px !important;
+  top: 13px;
+  right: 0px;
+  min-width: unset !important;
+  padding: 0 8px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2a9d8f;
+  border-radius: 4px;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  font-size: 13px;  /* Added to make text size smaller */
+  font-weight: 500;
+}
+
+.anon-button:hover:not(:disabled) {
+  background-color: #264653;
+  transform: translateY(-1px);
+}
+
+.anon-button:disabled {
+  background-color: #404040;
+  cursor: not-allowed;
+}
+
 
 button:disabled {
   background: #404040;

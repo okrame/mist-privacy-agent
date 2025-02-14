@@ -326,7 +326,7 @@ const App = () => {
           <ModeToggle mode={mode} onToggle={() => setMode(prev => prev === 'normal' ? 'advanced' : 'normal')} />
         </div>
       </div>
-
+  
       <div className="content-wrapper">
         <div className="input-wrapper">
           <Revisioning
@@ -338,6 +338,14 @@ const App = () => {
             disabled={!modelReady}
           />
           <div className="button-spacer">
+            <button
+              onClick={handlePrivacyProcess}
+              disabled={!privacyModelReady || isPrivacyProcessing || isAnalyzing}
+              className="anon-button"
+              title="Anonymize text"
+            >
+              Anon
+            </button>
             <button
               className="send-button"
               onClick={handleAnalyze}
@@ -357,21 +365,12 @@ const App = () => {
             </button>
           </div>
         </div>
-
+  
         <div className="button-container">
-
           <PrivacyOutput text={privacyOutput} />
-
-          <button
-            onClick={handlePrivacyProcess}
-            disabled={!privacyModelReady || isPrivacyProcessing}
-            className="privacy-button"
-          >
-            Rephrase
-          </button>
           <Spinner visible={isAnalyzing || isPrivacyProcessing} />
         </div>
-
+  
         <div ref={outputRef} id="output">
           <AnalysisTable
             data={tableData}

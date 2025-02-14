@@ -6,6 +6,7 @@
   display: grid;
   flex: 1;
   overflow: auto;
+  overflow-x: hidden;
   min-height: 0;
   padding-right: 52px;
 }
@@ -14,7 +15,7 @@
 /* Both layers share the same grid cell */
 .revisioning-editor > * {
   grid-area: 1 / 1 / 2 / 2;
-  width: calc(100% + 32px);
+  width: calc(100% + 52px);
   margin: 0;
   padding: 8px;
   font: inherit;
@@ -143,7 +144,6 @@
 .revisioning-textarea::-webkit-scrollbar {
   width: 8px;
   height: 8px;
-  right: -204px;
 }
 
 .revisioning-textarea::-webkit-scrollbar-track {

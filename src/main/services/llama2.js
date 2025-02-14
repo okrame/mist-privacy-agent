@@ -57,7 +57,7 @@ async function initializeLlama2() {
         'DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf'
       ),
       contextSize: 2048,
-      temperature: 0.1
+      temperature: 0.2
     });
 
     if (global.gc) {
@@ -108,8 +108,7 @@ async function runPrivacyAgent(text, attributes, window) {
     const response = await sessionObj.session.prompt(prompt, {
       onToken: (token) => {
         const decoded = privacyModel.detokenize([token]);
-        accumulatedText += decoded;
-        
+        accumulatedText += decoded;        
         // Send intermediate chunks to the renderer
         window.webContents.send('privacyChunk', {
           text: decoded,
