@@ -5,7 +5,7 @@
   background: transparent;
   display: grid;
   flex: 1;
-  overflow: auto;
+  overflow: visible;
   overflow-x: hidden;
   min-height: 0;
   padding-right: 52px;
@@ -51,7 +51,8 @@
   transform: translateZ(0);
   position: relative;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
+  padding-bottom: 32px; 
 }
 
 .revisioning-text {
@@ -61,82 +62,78 @@
 
 .revisioning-phrase {
   border-radius: 2px;
-  padding: 2px;
-  margin: -2px;
+  padding: 1px;
+  margin: -1px;
   cursor: pointer;
   pointer-events: auto !important; /* Reenable pointer events only for phrases */
   white-space: pre-wrap;
   word-break: keep-all;
   position: relative;
   display: inline;
+  backface-visibility: hidden;
+  perspective: 1000;
+  -webkit-backface-visibility: hidden;
+  -webkit-perspective: 1000;
 }
 
-.revisioning-phrase.replaced {
-  background: none !important;
-  border-bottom: 1px solid var(--app-text);
-  transition: border-color 0.2s ease;
+
+
+.phrase-container {
+  display: inline;
+  position: relative;
+  white-space: pre-wrap;
+  word-break: keep-all;
 }
 
-.revisioning-phrase.replaced:hover {
-  border-bottom-color: var(--app-accent);
-}
-
-.revisioning-phrase.hovered {
-  outline: 1px solid var(--app-accent);
-}
-
-.revisioning-suggestion {
-  position: absolute;
-  top: -28px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--app-bg);
-  border: 1px solid var(--app-border);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 0.8em;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.inline-suggestion {
+  display: inline;
+  margin-left: 4px;
   opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
-  pointer-events: auto;
+  transition: opacity 0.15s ease;
+  position: relative; 
+  z-index: 2;
 }
 
-.revisioning-phrase:hover .revisioning-suggestion {
+.revisioning-phrase:hover + .inline-suggestion,
+.inline-suggestion:hover {
   opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(-2px);
 }
+
+.revisioning-phrase.has-suggestion:hover {
+  background-color: transparent !important;
+  text-decoration: line-through;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
+}
+
+/* Keep normal highlight behavior for phrases without suggestions */
+.revisioning-phrase[class*="mark-sensitive"]:not(.has-suggestion):hover {
+  background-color: rgba(var(--highlight-primary-rgb), 0.5);
+}
+
+.suggestion-separator {
+  color: var(--app-border);
+  margin: 0 4px;
+  opacity: 0.6;
+}
+
 
 .suggestion-text {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  cursor: pointer;
 }
 
 .suggestion-text.private {
+  background-color: var(--app-bg);
   color: var(--app-accent);
+  line-height: 1.2;
 }
 
 .suggestion-text.original {
-  color: var(--app-text);
-}
-
-.revert-icon {
-  display: inline-flex;
-  align-items: center;
-  opacity: 0.6;
-  transition: opacity 0.15s ease;
-  margin-left: 4px;
-}
-
-.revert-icon:hover {
-  opacity: 1;
+  border-bottom: 1px solid var(--app-border);
 }
 
 
@@ -211,6 +208,7 @@
 .revisioning-phrase[class*="mark-sensitive"]:hover {
   background-color: rgba(var(--highlight-primary-rgb), 0.5);
 }
+
 
 /* Group hover utilities */
 .group:hover .group-hover\:opacity-100 {

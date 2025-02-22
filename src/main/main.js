@@ -1,7 +1,7 @@
 const { app, ipcMain, BrowserWindow } = require('electron');
 const path = require('path');
 const dotenv = require('dotenv');
-const { initializeLlama, runAgent, dispose, getModelStatus } = require('./services/llama');
+const { initializeLlama, runAgent, dispose, getModelStatus, stopInference } = require('./services/llama');
 const { createWindow, getMainWindow } = require('./services/window');
 const { createTray } = require('./services/tray');
 const { initializeLlama2, runPrivacyAgent, dispose: disposePrivacy, getModel2Status } = require('./services/llama2');
@@ -10,21 +10,6 @@ app.commandLine.appendSwitch('js-flags', '--expose-gc');
 dotenv.config();
 
 const isDev = !app.isPackaged;
-
-// async function handleWindowCreated(window) {
-//     try {
-//         console.log('6. Beginning model initialization...');
-//         const modelReady = await initializeLlama();
-//         console.log('7. Model initialization complete:', modelReady);
-//         window.webContents.send('modelStatus', { ready: modelReady });
-//     } catch (error) {
-//         console.error('8. Model initialization failed:', error);
-//         window.webContents.send('modelStatus', { 
-//             ready: false, 
-//             error: error.message 
-//         });
-//     }
-// }
 
 async function handleWindowCreated(window) {
   try {
@@ -78,21 +63,7 @@ app.on('activate', async () => {
   }
 });
 
-ipcMain.handle('analyzeText', async (event, text) => {
-  const mainWindow = getMainWindow();
-  try {
-    const result = await runAgent(text, mainWindow);
-    mainWindow.webContents.send('analysisComplete', {
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    mainWindow.webContents.send('analysisError', {
-      success: false,
-      error: error.message
-    });
-  }
-});
+
 
 
 ipcMain.on('getPrivacyModelStatus', (event) => {
@@ -100,23 +71,92 @@ ipcMain.on('getPrivacyModelStatus', (event) => {
   event.reply('privacyModelStatus', status);
 });
 
-ipcMain.handle('processPrivacy', async (event, { text, attributes }) => {
+ipcMain.handle('processPrivacy', async (event, { text, attributes, analyzedPhrases }) => {
   const mainWindow = getMainWindow();
   try {
-      const result = await runPrivacyAgent(text, attributes, mainWindow);
-      mainWindow.webContents.send('privacyComplete', {
-          success: true,
-          data: result
-      });
-      return result;
+    const result = await runPrivacyAgent(text, attributes, analyzedPhrases, mainWindow);
+    // The chunks are now being sent via the privacyChunk event in llama2.js
+    mainWindow.webContents.send('privacyComplete', {
+      success: true,
+      data: result
+    });
+    return result;
   } catch (error) {
-      mainWindow.webContents.send('privacyError', {
-          success: false,
-          error: error.message
-      });
-      throw error;
+    mainWindow.webContents.send('privacyError', {
+      success: false,
+      error: error.message
+    });
+    throw error;
   }
 });
+
+// In main.js
+ipcMain.handle('analyzeText', async (event, text) => {
+  const mainWindow = getMainWindow();
+  try {
+    // Only block new analysis, not the stop button
+    mainWindow.webContents.send('analysisStateChange', { isAnalyzing: true });
+    
+    const result = await runAgent(text, mainWindow);
+    if (result) {
+      mainWindow.webContents.send('analysisComplete', {
+        success: true,
+        data: result
+      });
+      return result;
+    }
+  } catch (error) {
+    console.error('Analysis error in main process:', error);
+    const errorMessage = error.message || 'An unknown error occurred';
+    mainWindow.webContents.send('analysisError', {
+      success: false,
+      error: errorMessage
+    });
+    throw new Error(errorMessage);
+  } finally {
+    mainWindow.webContents.send('analysisStateChange', { isAnalyzing: false });
+  }
+});
+
+ipcMain.handle('stopAnalysis', async () => {
+  const mainWindow = getMainWindow();
+  try {
+    console.log('Stopping analysis...');
+    mainWindow.webContents.send('analysisStateChange', { isPostStop: true });
+
+    await Promise.all([
+      stopInference(),
+      new Promise((resolve) => {
+        const completeHandler = () => {
+          mainWindow.webContents.removeListener('analysisComplete', completeHandler);
+          mainWindow.webContents.removeListener('analysisError', errorHandler);
+          resolve();
+        };
+        const errorHandler = () => {
+          mainWindow.webContents.removeListener('analysisComplete', completeHandler);
+          mainWindow.webContents.removeListener('analysisError', errorHandler);
+          resolve();
+        };
+        mainWindow.webContents.once('analysisComplete', completeHandler);
+        mainWindow.webContents.once('analysisError', errorHandler);
+      }),
+    ]);
+
+    console.log('Analysis fully stopped. Resetting isPostStop.');
+    mainWindow.webContents.send('analysisStateChange', { isPostStop: false });
+
+    return true;
+  } catch (error) {
+    console.error('Error stopping analysis:', error);
+    mainWindow.webContents.send('analysisError', { success: false, error: error.message });
+
+    console.log('Forcing isPostStop reset due to error.');
+    mainWindow.webContents.send('analysisStateChange', { isPostStop: false });
+
+    return false;
+  }
+});
+
 
 app.on('before-quit', async () => {
   await Promise.all([

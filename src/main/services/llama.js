@@ -8,24 +8,60 @@ IMPORTANT: Only include attributes in your JSON output where you can make a reas
 `;
 
 // const agent1SystemPrompt = `You are a specialized AI assistant trained to analyze text for personal attribute inference and provide detailed analysis.
-// IMPORTANT: Only include attributes in your JSON output where you can make a reasonable inference. There can be more than one inferred attribute. Skip attributes entirely if there's insufficient evidence.
+// IMPORTANT: 
+// - Only include attributes in your JSON output where you can make a reasonable inference. There can be more than one inferred attribute. Skip attributes entirely if there's insufficient evidence.
+// - You MUST answer considering the user's profile information.
+// `;
 
-// IMPORTANT: You must answer keeping in mind that the user lives in Tallin`
 
 let llama = null;
 let model = null;
 let jsonGrammar = null;
+let currentSession = null;
 
 
 // Models
-
-const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf"; // THIS IS GOOD, but needs refactoring extraction code
-//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.gguf"; // still the most reliable!!!!!
-
-
+const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf"; 
+//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals_2GT.gguf"; 
 
 function getModelStatus() {
   return { ready: model !== null && llama !== null };
+}
+
+let isProcessing = false;
+let processingPromise = null;
+
+async function stopInference() {
+  try {
+    if (currentSession && isProcessing) {
+      console.log('Interrupting current session...');
+      isProcessing = false;
+      
+      if (currentSession.session?.contextSequence) {
+        await currentSession.session.contextSequence.interrupt();
+      }
+      
+      // Wait for the actual processing to complete
+      if (processingPromise) {
+        try {
+          await processingPromise;
+        } catch (error) {
+          // Expected error from interruption
+          console.log('Processing interrupted successfully');
+        }
+      }
+      
+      await cleanupSession(currentSession);
+      currentSession = null;
+    }
+    return true;
+  } catch (error) {
+    console.error('Error during inference stop:', error);
+    isProcessing = false;
+    processingPromise = null;
+    currentSession = null;
+    throw error;
+  }
 }
 
 
@@ -107,6 +143,8 @@ async function preWarmModel() {
 }
 
 async function cleanupSession(sessionObj) {
+  if (!sessionObj) return;
+
   if (sessionObj.session?.contextSequence) {
     try {
       await sessionObj.session.contextSequence.dispose();
@@ -114,6 +152,7 @@ async function cleanupSession(sessionObj) {
       console.warn('Error disposing context sequence:', e);
     }
   }
+  
   if (sessionObj.context) {
     try {
       await sessionObj.context.dispose();
@@ -121,8 +160,10 @@ async function cleanupSession(sessionObj) {
       console.warn('Error disposing context:', e);
     }
   }
-}
 
+  // Small delay to ensure cleanup is complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+}
 async function createNewSession() {
   const { LlamaChatSession } = await import('node-llama-cpp');
   const context = await model.createContext();
@@ -148,6 +189,20 @@ async function createNewSession() {
 }
 
 async function runAgent(text, window) {
+  // const groundTruth = {
+  //   age: "24",
+  //   sex: "female", 
+  //   city_country: "Accra",
+  //   birth_city_country: "Kumasi",
+  //   education: "studying towards a Bachelors in Nursing",
+  //   occupation: "part-time care aide",
+  //   relationship_status: "in a relationship",
+  //   income_level: "low"
+  // };
+
+  // const groundTruthStr = JSON.stringify(groundTruth);
+  // text = `My Profile: ${groundTruthStr}\n\n${text}`;
+
   const tokenCount = await model.tokenize(text);
   if (tokenCount.length > 1024) {
     throw new Error("Input too long - please reduce length");
@@ -155,29 +210,32 @@ async function runAgent(text, window) {
   
   console.log('Running agent with text:', text);
   const startTime = process.hrtime.bigint();
+  
   let sessionObj = null;
   
   try {
+    // Always create a new session for each analysis
     sessionObj = await createNewSession();
-
     let accumulator = '';
     
     const response = await sessionObj.session.prompt(text, {
       grammar: jsonGrammar,
       onTextChunk: (chunk) => {
-        // Decode Unicode escape sequences
         const decodedChunk = chunk.replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) => 
           String.fromCodePoint(parseInt(hex, 16))
         );
         
         accumulator += decodedChunk;
         try {
-          JSON.parse(accumulator);
+          // Try to parse the accumulated JSON
+          const parsedJson = JSON.parse(accumulator);
           window.webContents.send('analysisChunk', {
             text: decodedChunk,
-            isComplete: true
+            isComplete: true,
+            data: parsedJson
           });
         } catch (e) {
+          // If we can't parse it yet, just send the chunk
           window.webContents.send('analysisChunk', {
             text: decodedChunk,
             isComplete: false
@@ -186,7 +244,7 @@ async function runAgent(text, window) {
       }
     });
 
-    // Decode the full response before parsing
+    // Handle successful completion
     const decodedResponse = response.replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) => 
       String.fromCodePoint(parseInt(hex, 16))
     );
@@ -194,22 +252,26 @@ async function runAgent(text, window) {
     const endTime = process.hrtime.bigint();
     const inferenceTime = Number(endTime - startTime) / 1e6;
     
-    console.log(`Agent inference time: ${inferenceTime.toFixed(2)} ms`);
-    console.log('Agent output:', decodedResponse);
-
+    const parsedResponse = JSON.parse(decodedResponse);
+    console.log('Agent completed successfully. Response:', parsedResponse);
+    console.log('Inference time: ', inferenceTime);
+    
     return {
-      response: JSON.parse(decodedResponse),
+      response: parsedResponse,
       inferenceTime
     };
   } catch (error) {
     console.error('Error running agent:', error);
     throw error;
   } finally {
+    // Always clean up the session after use
     if (sessionObj) {
       await cleanupSession(sessionObj);
     }
   }
 }
+
+
 
 async function dispose() {
   if (model) {
@@ -245,9 +307,11 @@ function logMemoryUsage(label) {
   }
 }
 
+// Update the module exports:
 module.exports = {
   initializeLlama,
   runAgent,
   dispose,
-  getModelStatus
+  getModelStatus,
+  stopInference
 };

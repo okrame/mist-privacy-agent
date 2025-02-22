@@ -2,6 +2,37 @@ export function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const similarity_degree = 0.8;
+
+
+export function findExactMatches(text, phrases, attributeMap) {
+    const matches = [];
+    phrases.forEach(phrase => {
+        // Create a word boundary-aware regex for exact matching
+        const regex = new RegExp(`\\b${escapeRegExp(phrase)}\\b`, 'g');
+        let match;
+        
+        while ((match = regex.exec(text)) !== null) {
+            matches.push({
+                start: match.index,
+                end: match.index + match[0].length,
+                phrase: match[0],
+                attribute: attributeMap.get(phrase.toLowerCase())
+            });
+        }
+    });
+
+    // Sort and filter overlapping matches
+    return matches
+        .sort((a, b) => a.start - b.start)
+        .reduce((acc, match) => {
+            if (!acc.length || match.start >= acc[acc.length - 1].end) {
+                acc.push(match);
+            }
+            return acc;
+        }, []);
+}
+
 
 // Add Levenshtein distance calculation
 export function levenshteinDistance(str1, str2) {
@@ -43,7 +74,7 @@ export function findBestSuggestion(phrase, suggestionMap) {
     // If no exact match, try fuzzy matching
     let bestMatch = null;
     let bestDistance = Infinity;
-    const similarityThreshold = 0.8; // 80% similarity required
+    const similarityThreshold = similarity_degree; 
 
     Object.entries(suggestionMap).forEach(([original, data]) => {
         const distance = levenshteinDistance(phraseLower, original);
@@ -111,8 +142,8 @@ export function findBestMatch(phrase, text) {
             const similarity = 1 - (distance / maxLength);
 
             // Update best match if this is better
-            // Require at least 80% similarity to consider it a match
-            if (similarity >= 0.8 && distance < bestMatch.distance) {
+            // Require at least % similarity to consider it a match
+            if (similarity >= similarity_degree && distance < bestMatch.distance) {
                 // Find the actual position in original text
                 const startIndex = text.toLowerCase().indexOf(sequence.toLowerCase());
                 if (startIndex !== -1) {

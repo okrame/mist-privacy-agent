@@ -4,7 +4,7 @@ const path = require('path');
 const MIN_WIDTH = 400;
 const MIN_HEIGHT = 300;
 const DEFAULT_WIDTH = 600;
-const DEFAULT_HEIGHT = 650;
+const DEFAULT_HEIGHT = 250;
 
 let mainWindow;
 

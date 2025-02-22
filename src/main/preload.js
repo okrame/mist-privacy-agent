@@ -25,22 +25,65 @@ contextBridge.exposeInMainWorld('privacyAPI', {
     });
   },
 
+  stopAnalysis: () => {
+    return ipcRenderer.invoke('stopAnalysis');
+  },
 
-  // Add these to the existing privacyAPI object
-processPrivacy: (text, attributes) => {
-  return new Promise((resolve, reject) => {
-    const completionHandler = (_event, result) => {
-      resolve(result.data);
+  onAnalysisStateChange: (callback) => {
+    ipcRenderer.on('analysisStateChange', (_event, state) => {
+      callback(state);
+    });
+  },
+
+  onModelsForceKilled: (callback) => {
+    ipcRenderer.on('modelsForceKilled', (_event, result) => {
+      callback(result);
+    });
+  },
+
+  onModelsReinitializing: (callback) => {
+    const handler = (_event, status) => {
+      if (!status.ready) {
+        callback(true);
+      }
     };
-
-    const errorHandler = (_event, error) => {
-      reject(error);
+    
+    ipcRenderer.on('modelStatus', handler);
+    ipcRenderer.on('privacyModelStatus', handler);
+    
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener('modelStatus', handler);
+      ipcRenderer.removeListener('privacyModelStatus', handler);
     };
+  },
 
-    ipcRenderer.once('privacyComplete', completionHandler);
-    ipcRenderer.once('privacyError', errorHandler);
-    ipcRenderer.invoke('processPrivacy', { text, attributes });
-  });
+
+  processPrivacy: (text, attributes, analyzedPhrases) => {
+    return new Promise((resolve, reject) => {
+      const completionHandler = (_event, result) => {
+        resolve(result.data);
+      };
+  
+      const errorHandler = (_event, error) => {
+        reject(error);
+      };
+  
+      ipcRenderer.once('privacyComplete', completionHandler);
+      ipcRenderer.once('privacyError', errorHandler);
+      ipcRenderer.invoke('processPrivacy', { text, attributes, analyzedPhrases });
+    });
+  },
+
+onPrivacyChunk: (callback) => {
+  const handler = (_event, data) => {
+    callback(data);
+  };
+  ipcRenderer.on('privacyChunk', handler);
+  // Return cleanup function
+  return () => {
+    ipcRenderer.removeListener('privacyChunk', handler);
+  };
 },
 
 onPrivacyModelStatus: (callback) => {
@@ -59,13 +102,11 @@ checkPrivacyModelStatus: () => {
   });
 },
   onModelStatus: (callback) => {
-    console.log('Setting up model status listener');
     
     // Immediately request current status
     ipcRenderer.send('getModelStatus');
     
     ipcRenderer.on('modelStatus', (_event, status) => {
-        console.log('Received model status:', status);
         callback(status);
     });
     

@@ -1,21 +1,26 @@
 .spinner-container {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 8px;
+  position: absolute;
+  left: 13px;  /* Match the right spacing of send-button */
+  top: 13px;   /* Match the top spacing of other buttons */
+  width: 32px; /* Match button dimensions */
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--app-accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
-  
-  .spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #4a9eff;
-    border-top: 2px solid transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
+}

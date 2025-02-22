@@ -1,6 +1,7 @@
 :root {
   --app-bg: #1a1a1a;
   --app-text: #e8e8e8;
+  --app-text2: #B8B8B8;
   --app-border: #404040;
   --app-accent: #4a9eff;
   --content-bg: #252829;
@@ -14,6 +15,7 @@
   --highlight-alt6-rgb: 255, 192, 203; /* Example: pink */
   --highlight-alt7-rgb: 218, 165, 32; /* Example: goldenrod */
 }
+
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,

@@ -28,6 +28,47 @@
 .personal-data-cell {
     position: relative;
 }
+.attribute-name {
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+    font-size: 15px;
+    color: var(--app-text);
+  }
+  
+  /* Match the same highlight colors from the revisioning component */
+  .attribute-name.mark-sensitive-age {
+    background-color: rgba(var(--highlight-primary-rgb), 0.3);
+  }
+  
+  .attribute-name.mark-sensitive-sex {
+    background-color: rgba(var(--highlight-alt1-rgb), 0.3);
+  }
+  
+  .attribute-name.mark-sensitive-city_country {
+    background-color: rgba(var(--highlight-alt2-rgb), 0.3);
+  }
+  
+  .attribute-name.mark-sensitive-birth_city_country {
+    background-color: rgba(var(--highlight-alt3-rgb), 0.3);
+  }
+  
+  .attribute-name.mark-sensitive-education {
+    background-color: rgba(var(--highlight-alt4-rgb), 0.3);
+  }
+  
+  .attribute-name.mark-sensitive-occupation {
+    background-color: rgba(var(--highlight-alt5-rgb), 0.3);
+  }
+  
+  .attribute-name.mark-sensitive-relationship_status {
+    background-color: rgba(var(--highlight-alt6-rgb), 0.3);
+  }
+  
+  .attribute-name.mark-sensitive-income_level {
+    background-color: rgba(var(--highlight-alt7-rgb), 0.3);
+  }
+  
 
 .personal-data-content {
     display: flex;

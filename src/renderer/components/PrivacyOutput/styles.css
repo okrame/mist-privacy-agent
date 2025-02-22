@@ -1,33 +1,153 @@
-/* src/renderer/components/PrivacyOutput/styles.css */
 .privacy-output-container {
-    margin: 15px 0;
-    padding: 15px;
-    background-color: var(--content-bg);
-    border-radius: 4px;
-    border: 1px solid var(--app-border);
-    animation: fadeIn 0.3s ease-in-out;
+  margin: 15px 0;
+  background-color: var(--content-bg);
+  border-radius: 4px;
+  border: 1px solid var(--app-border);
+  animation: fadeIn 0.3s ease-in-out;
+  -webkit-app-region: no-drag;
+  overflow: hidden;
+  width: calc(100% - 8px);
+  align-self: flex-start; /* Align to the left */
+  text-align: left; /* Ensure text always aligns left */
+}
+
+.privacy-output-text {
+  padding: 15px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+  color: var(--app-text2); /* Using the new slightly greyer text color */
+  font-size: 0.92rem; /* Slightly smaller font size */
+  text-align: left; /* Ensure text aligns left */
+}
+
+.privacy-header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 14px 15px;
+  cursor: pointer;
+  user-select: none;
+  text-align: left; /* Ensure header text aligns left */
+  width: 100%; /* Ensure full width */
+  box-sizing: border-box; /* Include padding in width calculation */
+  gap: 10px; /* Add a small gap between text and accordion toggle */
+}
+
+.privacy-header:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.accordion-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--app-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.chevron {
+  transition: transform 0.3s ease;
+}
+
+.chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.privacy-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  width: 100%; /* Ensure full width */
+}
+
+.privacy-content.expanded {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.privacy-output-text {
+  padding: 15px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+  color: var(--app-text2); /* Using the new slightly greyer text color */
+  font-size: 0.92rem; /* Slightly smaller font size */
+  text-align: left; /* Ensure text aligns left */
+}
+
+.summary-content {
+  padding: 0 15px 15px;
+  color: var(--app-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+  font-weight: 500;
+  min-height: 20px;
+  text-align: left; /* Ensure summary aligns left */
+}
+
+/* Empty state styling */
+.summary-content:empty {
+  display: none;
+}
+
+.privacy-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+
+.privacy-content::-webkit-scrollbar-track {
+  background: var(--app-bg);
+  border-radius: 4px;
+}
+
+.privacy-content::-webkit-scrollbar-thumb {
+  background: var(--app-border);
+  border-radius: 4px;
+  border: 2px solid var(--app-bg);
+}
+
+.privacy-content::-webkit-scrollbar-thumb:hover {
+  background: var(--app-accent);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
   }
-  
-  .privacy-output-container h3 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    color: var(--app-accent);
-    font-size: 1rem;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .privacy-output-text {
-    white-space: pre-wrap;
-    line-height: 1.5;
-    color: var(--app-text);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
   }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  100% {
+    background-position: 200% 0;
   }
+}
+
+.shimmer-text {
+  position: relative;
+  display: inline-block;
+  color: var(--app-text);
+  background: linear-gradient(
+    90deg,
+    var(--app-text) 0%,
+    var(--app-accent) 30%,
+    var(--app-text) 60%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s infinite linear;
+}

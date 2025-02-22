@@ -3,10 +3,24 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const systemPrompt = `You are an AI assistant tasked with making text more privacy-preserving. 
-You must keep your thinking brief`;
+// DeepSeek specific chat template markers
+const USER_TOKEN = '<｜User｜>';
+const ASSISTANT_TOKEN = '<｜Assistant｜>';
+
+const systemPrompt = `
+Think step by step, but keep reasoning concise (under 20 words). Prefer direct answers over long explanations.`;
+
+// const systemPrompt = `You are an AI assistant tasked with making text more privacy-preserving.
+// First briefly explain your thinking, then provide the privacy-preserving version of the text on a new line.
+// Do not use any XML tags in your response.`;
+
+async function formatChatPrompt(systemPrompt, userInput) {
+  // Format the full prompt using DeepSeek chat template
+  return `${systemPrompt}${USER_TOKEN}${userInput}${ASSISTANT_TOKEN}`;
+}
 
 async function runChatTest() {
+  const startTime = performance.now();
   try {
     // Get input text from command line
     const text = process.argv[2];
@@ -22,88 +36,60 @@ async function runChatTest() {
     const llama = await getLlama();
 
     // Load model
-    const modelPath = path.join(process.cwd(), 'models/DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf');
+    const modelPath = path.join(process.cwd(), 'models/BartowskiDeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf');
+    //const modelPath = path.join(process.cwd(), 'models/DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf');
     console.log('Loading model from:', modelPath);
-
+    
+    const modelLoadStart = performance.now();
     const model = await llama.loadModel({
       modelPath,
       contextSize: 2048,
       modelConfig: {
         temperature: 0.1,
+        // Add specific DeepSeek parameters
+        topP: 0.9,
+        repeatPenalty: 1.1,
+        presencePenalty: 0.0,
+        frequencyPenalty: 0.0
       }
     });
+    const modelLoadTime = performance.now() - modelLoadStart;
+    console.log(`Model loaded in ${modelLoadTime.toFixed(2)}ms`);
 
-    // Create JSON schema grammar
-    // const grammar = await llama.createGrammarForJsonSchema({
-    //   type: "object",
-    //   additionalProperties: false,
-    //   properties: {
-    //     thinking: {
-    //       type: "string",
-    //       description: "Your reasoning process"
-    //     },
-    //     response: {
-    //       type: "string", 
-    //       description: "The privacy-preserving version of the text"
-    //     }
-    //   },
-    //   required: ["thinking", "response"],
-    //   // Add these to ensure proper JSON formatting
-    //   additionalProperties: false,
-    //   $schema: "http://json-schema.org/draft-07/schema#"
-    // });
-
-    // alternatively try
-    jsonGrammar = await llama.getGrammarFor("json");
-
-    // Create context and session
+    // Create context
     const context = await model.createContext();
+    
+    // Initialize chat session with custom template formatter
     const session = new LlamaChatSession({
       contextSequence: context.getSequence(),
       systemPrompt,
       chatWrapper: new Llama3_1ChatWrapper({
-        noToolInstructions: true  // Disable any tool-related instructions
+        noToolInstructions: true,
+        // Add custom template formatter
+        templateFormatter: async (messages) => {
+          const formattedPrompt = await formatChatPrompt(
+            messages.system || '',
+            messages.prompt
+          );
+          return formattedPrompt;
+        }
       })
     });
 
     try {
       console.log('Running inference...\n');
-
-      // Run inference with streaming
-      let accumulatedText = '';
       console.log('Starting response stream:');
       
-      const response = await session.prompt(text, {
-        jsonGrammar,
+      const inferenceStart = performance.now();
+      await session.prompt(text, {
         onToken: (token) => {
           const decoded = model.detokenize([token]);
-          //process.stdout.write(decoded); // Print raw tokens for debugging
-          accumulatedText += decoded;
+          process.stdout.write(decoded); // Print tokens directly
         }
       });
-
-      // Print final parsed response
-      console.log('\n\nFinal accumulated text:', accumulatedText);
+      const inferenceTime = performance.now() - inferenceStart;
       
-      try {
-        // Clean up JSON before parsing
-        const cleanedText = accumulatedText
-        .replace(/!(\w+)":/g, '"$1":')  // Fix !key": to "key":
-        .replace(/[\r\n]/g, ' ')        // Remove newlines
-        .replace(/\s+/g, ' ')           // Normalize spaces
-        .replace(/\\+"/g, '\\"')        // Fix escaped quotes
-        .trim();
-        
-        // const parsed = JSON.parse(cleanedText);
-        // // Single, clean console output
-        // console.log('\nReasoning:', parsed.thinking);
-        // console.log('\nParsed proposal:', parsed.response);
-
-      } catch (e) {
-        console.error('Error parsing response:', e);
-      }
-
-      console.log('\nDone!');
+      console.log('\nInference completed in', inferenceTime.toFixed(2), 'ms');
 
     } catch (error) {
       console.error('Error during inference:', error);
@@ -116,6 +102,9 @@ async function runChatTest() {
 
   } catch (error) {
     console.error('Fatal error:', error);
+  } finally {
+    const totalTime = performance.now() - startTime;
+    console.log(`\nTotal execution time: ${totalTime.toFixed(2)}ms`);
   }
 }
 
