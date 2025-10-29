@@ -8,13 +8,13 @@ module.exports = {
       {
         test: /\.node$/,
         use: 'node-loader',
-      }
+      },
     ],
   },
   resolve: {
     extensions: ['.js', '.json', '.node']
   },
   output: {
-    filename: '[name].js'  // Userà il nome dell'entry point
-  }
+    filename: '[name].js' // keep entrypoint names: main.js, preload.js
+  },
 };

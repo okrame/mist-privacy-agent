@@ -21,7 +21,7 @@ let currentSession = null;
 
 
 // Models
-const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf"; 
+const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf";
 //const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals_2GT.gguf"; 
 
 function getModelStatus() {
@@ -36,11 +36,11 @@ async function stopInference() {
     if (currentSession && isProcessing) {
       console.log('Interrupting current session...');
       isProcessing = false;
-      
+
       if (currentSession.session?.contextSequence) {
         await currentSession.session.contextSequence.interrupt();
       }
-      
+
       // Wait for the actual processing to complete
       if (processingPromise) {
         try {
@@ -50,7 +50,7 @@ async function stopInference() {
           console.log('Processing interrupted successfully');
         }
       }
-      
+
       await cleanupSession(currentSession);
       currentSession = null;
     }
@@ -74,7 +74,7 @@ async function initializeLlama() {
 
     if (global.gc) {
       global.gc();
-  }
+    }
 
     const { getLlama } = await import('node-llama-cpp');
 
@@ -84,27 +84,28 @@ async function initializeLlama() {
     }
     console.log('Creating new Llama instance...');
     llama = await getLlama();
-    
+
     if (model) {
       console.log('Disposing old model...');
       await model.dispose();
     }
 
-    console.log('Loading model from:', path.join(__dirname, '../../models'));
+    const baseModelDir = app.isPackaged
+      ? path.join(process.resourcesPath, 'models')
+      : path.join(__dirname, '../../models');
+
+    console.log('Loading model from:', baseModelDir);
     logMemoryUsage('Before model1 load');
+
     model = await llama.loadModel({
-      modelPath: path.join(
-        app.isPackaged 
-          ? process.resourcesPath 
-          : path.join(__dirname, '../../models'), 
-        testmodel
-      ),
+      modelPath: path.join(baseModelDir, testmodel),
       contextSize: 2048,
       //temperature: 0.1,
       //topP: 0.9,// default is 0.95, allow the model to consider a good range of relevant tokens while filtering out unlikely ones,
       //repeat_penalty: 1.1, // Avoid repetitive analysis
-      encoding: 'utf8' 
+      encoding: 'utf8'
     });
+
     console.log('Model loaded successfully');
     logMemoryUsage('After model1 load');
 
@@ -114,7 +115,7 @@ async function initializeLlama() {
 
     jsonGrammar = await llama.getGrammarFor("json");
     await preWarmModel();
-    
+
     console.log('Llama model initialized and pre-warmed successfully');
     return true;
   } catch (error) {
@@ -126,7 +127,7 @@ async function initializeLlama() {
 async function preWarmModel() {
   console.log('Pre-warming model...');
   let sessionObj = null;
-  
+
   try {
     sessionObj = await createNewSession();
     await sessionObj.session.prompt("This is a simple test message. DO NOT ANSWER.", {
@@ -152,7 +153,7 @@ async function cleanupSession(sessionObj) {
       console.warn('Error disposing context sequence:', e);
     }
   }
-  
+
   if (sessionObj.context) {
     try {
       await sessionObj.context.dispose();
@@ -192,11 +193,11 @@ async function runAgent(text, window) {
   // const groundTruth = {
   //   age: "24",
   //   sex: "female", 
-  //   city_country: "Accra",
+  //   city_country: "Monterey, California",
   //   birth_city_country: "Kumasi",
   //   education: "studying towards a Bachelors in Nursing",
   //   occupation: "part-time care aide",
-  //   relationship_status: "in a relationship",
+  //   relationship_status: "single",
   //   income_level: "low"
   // };
 
@@ -207,24 +208,24 @@ async function runAgent(text, window) {
   if (tokenCount.length > 1024) {
     throw new Error("Input too long - please reduce length");
   }
-  
+
   console.log('Running agent with text:', text);
   const startTime = process.hrtime.bigint();
-  
+
   let sessionObj = null;
-  
+
   try {
     // Always create a new session for each analysis
     sessionObj = await createNewSession();
     let accumulator = '';
-    
+
     const response = await sessionObj.session.prompt(text, {
       grammar: jsonGrammar,
       onTextChunk: (chunk) => {
-        const decodedChunk = chunk.replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) => 
+        const decodedChunk = chunk.replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
           String.fromCodePoint(parseInt(hex, 16))
         );
-        
+
         accumulator += decodedChunk;
         try {
           // Try to parse the accumulated JSON
@@ -245,17 +246,17 @@ async function runAgent(text, window) {
     });
 
     // Handle successful completion
-    const decodedResponse = response.replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) => 
+    const decodedResponse = response.replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
       String.fromCodePoint(parseInt(hex, 16))
     );
-    
+
     const endTime = process.hrtime.bigint();
     const inferenceTime = Number(endTime - startTime) / 1e6;
-    
+
     const parsedResponse = JSON.parse(decodedResponse);
     console.log('Agent completed successfully. Response:', parsedResponse);
     console.log('Inference time: ', inferenceTime);
-    
+
     return {
       response: parsedResponse,
       inferenceTime
@@ -275,27 +276,27 @@ async function runAgent(text, window) {
 
 async function dispose() {
   if (model) {
-      try {
-          await model.dispose();
-          model = null;
-          // Force cleanup
-          if (global.gc) global.gc();
-      } catch (e) {
-          console.warn('Error disposing model:', e);
-      }
+    try {
+      await model.dispose();
+      model = null;
+      // Force cleanup
+      if (global.gc) global.gc();
+    } catch (e) {
+      console.warn('Error disposing model:', e);
+    }
   }
-  
+
   // Add a small delay before disposing llama
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   if (llama) {
-      try {
-          await llama.dispose();
-          llama = null;
-          if (global.gc) global.gc();
-      } catch (e) {
-          console.warn('Error disposing llama:', e);
-      }
+    try {
+      await llama.dispose();
+      llama = null;
+      if (global.gc) global.gc();
+    } catch (e) {
+      console.warn('Error disposing llama:', e);
+    }
   }
 }
 
@@ -303,7 +304,7 @@ function logMemoryUsage(label) {
   const used = process.memoryUsage();
   console.log(`Memory usage (${label}):`);
   for (let key in used) {
-      console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+    console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
   }
 }
 

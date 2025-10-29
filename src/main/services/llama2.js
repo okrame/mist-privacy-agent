@@ -3,7 +3,7 @@ const path = require('path');
 
 // Define a more specific system prompt for privacy preservation
 const privacySystemPrompt = `You are a smart AI assistant.
-Your NEVER overthink and you ALWAYS focus on rephrasing with same writing style and tone`;
+Your MUST think and reason briefly`;
 
 const USER_TOKEN = '<｜User｜>';
 const ASSISTANT_TOKEN = '<｜Assistant｜>';
@@ -22,13 +22,13 @@ async function formatChatPrompt(systemPrompt, userInput) {
 async function preWarmPrivacyModel() {
   console.log('Pre-warming Agent2 model...');
   let sessionObj = null;
-  
+
   try {
     sessionObj = await createPrivacySession();
     // Simple test prompt to warm up the model
     const warmupPrompt = "This is a test sentence for warming up. Do not answer";
     await sessionObj.session.prompt(warmupPrompt, {
-      onToken: () => {} // Empty callback to prevent unnecessary processing
+      onToken: () => { } // Empty callback to prevent unnecessary processing
     });
     console.log('Agent2 model pre-warming complete');
   } catch (error) {
@@ -63,17 +63,19 @@ async function initializeLlama2() {
       await llama2.dispose();
     }
     llama2 = await getLlama();
-    
+
     if (privacyModel) {
       await privacyModel.dispose();
     }
 
-    console.log('Loading agent2 model...');
+    const baseModelDir = app.isPackaged
+      ? path.join(process.resourcesPath, 'models')
+      : path.join(__dirname, '../../models');
+
+    console.log('Loading agent2 model from:', baseModelDir);
     privacyModel = await llama2.loadModel({
       modelPath: path.join(
-        app.isPackaged 
-          ? process.resourcesPath 
-          : path.join(__dirname, '../../models'), 
+        baseModelDir,
         'BartowskiDeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf'
       ),
       contextSize: 2048,
@@ -102,7 +104,7 @@ async function initializeLlama2() {
 async function createPrivacySession() {
   const { LlamaChatSession, Llama3_1ChatWrapper } = await import('node-llama-cpp');
   const context = await privacyModel.createContext();
-  
+
   try {
     const sequence = context.getSequence();
     return {
@@ -164,27 +166,27 @@ Original text to modify: "${text}"\n\n`;
       onToken: async (token) => {
         const decoded = privacyModel.detokenize([token]);
         accumulatedText += decoded;
-        
+
         // Print tokens directly to console
         process.stdout.write(decoded);
-        
+
         // Rate limit chunk sending to renderer
         const now = Date.now();
         if (now - lastChunkTime >= CHUNK_DELAY) {
           // Extract summary if a think tag is present
           const thinkTagIndex = accumulatedText.lastIndexOf('</think>');
-          
+
           // Split content if think tag is present
           let mainContent = accumulatedText;
           let summaryContent = '';
-          
+
           if (thinkTagIndex !== -1) {
             // Only show text up to the </think> tag in the main content
             mainContent = accumulatedText.substring(0, thinkTagIndex + 8).trim();
             // Extract the summary part
             summaryContent = accumulatedText.substring(thinkTagIndex + 8).trim();
           }
-          
+
           // Send intermediate chunks to the renderer
           window.webContents.send('privacyChunk', {
             text: mainContent, // Send only the thinking part for main display
@@ -198,11 +200,11 @@ Original text to modify: "${text}"\n\n`;
 
     // Final response handling
     const thinkTagIndex = accumulatedText.lastIndexOf('</think>');
-    
+
     // Split content if think tag is present
     let mainContent = accumulatedText;
     let summaryContent = '';
-    
+
     if (thinkTagIndex !== -1) {
       // Only show text up to the </think> tag in the main content
       mainContent = accumulatedText.substring(0, thinkTagIndex + 8).trim();
@@ -219,7 +221,7 @@ Original text to modify: "${text}"\n\n`;
 
     const endTime = process.hrtime.bigint();
     const inferenceTime = Number(endTime - startTime) / 1e6;
-    
+
     console.log(`\n\n Privacy agent inference time: ${inferenceTime.toFixed(2)} ms`);
 
     return {
@@ -261,9 +263,9 @@ async function dispose() {
       console.warn('Error disposing privacy model:', e);
     }
   }
-  
+
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   if (llama2) {
     try {
       await llama2.dispose();

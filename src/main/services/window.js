@@ -3,8 +3,8 @@ const path = require('path');
 
 const MIN_WIDTH = 400;
 const MIN_HEIGHT = 300;
-const DEFAULT_WIDTH = 600;
-const DEFAULT_HEIGHT = 250;
+const DEFAULT_WIDTH = 650;
+const DEFAULT_HEIGHT = 300;
 
 let mainWindow;
 
@@ -15,7 +15,7 @@ async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
       height: DEFAULT_HEIGHT,
       minWidth: MIN_WIDTH,
       minHeight: MIN_HEIGHT,
-      show: false,  // Start hidden
+      show: false, 
       frame: false,
       fullscreenable: false,
       resizable: true,
