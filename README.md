@@ -17,7 +17,7 @@
 Mist is a desktop experiment showing how local small language models can infer personal attributes from a user prompt, and then help rewrite that same prompt to reduce such inference risks.
 
 
-![Demo](https://github.com/user-attachments/assets/7b738905-b854-4e9f-aacc-91e1c51d918e)
+<video src="https://github.com/user-attachments/assets/7b738905-b854-4e9f-aacc-91e1c51d918e" autoplay loop muted playsinline width="600"></video>
 
 
 ## Why?
