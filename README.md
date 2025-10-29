@@ -4,7 +4,6 @@
     <a href="LICENSE">
         <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
     </a>
-    <img src="https://img.shields.io/badge/inference-local_only-success?style=flat-square">
     <a href="https://huggingface.co/gufett0/unsloth-llama3B">
         <img src="https://img.shields.io/badge/model-GGUF_quantized-important?style=flat-square">
     </a>
@@ -17,7 +16,7 @@
 Mist is a desktop experiment showing how local small language models can infer personal attributes from a user prompt, and then help rewrite that same prompt to reduce such inference risks.
 
 
-<video src="https://github.com/user-attachments/assets/7b738905-b854-4e9f-aacc-91e1c51d918e" autoplay loop muted playsinline width="600"></video>
+<video src="https://github.com/user-attachments/assets/92c572c5-7a41-4a56-b82a-d84c5ac7a34c" autoplay loop muted playsinline width="600"></video>
 
 
 ## Why?
@@ -26,7 +25,7 @@ Text that feels anonymous is often not. Seemingly harmless phrases can leak thin
 * approximate age
 * socioeconomic status
 * relationship status
-* geographic origin
+* geographic information
 * education or employment patterns
 
 Mist makes these risks *visible*:
@@ -38,7 +37,7 @@ Mist makes these risks *visible*:
 
 So the goal is understanding the potential risk of privacy leak, and offering an alternative.
 
-Mist is intentionally offline: text processing and attribute inference run locally, with no external data transmission.
+**Mist is intentionally offline**: text processing and attribute inference run locally, with no external data transmission.
 
 ## Relevant research
 
