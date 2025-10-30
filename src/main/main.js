@@ -5,6 +5,7 @@ const { initializeLlama, runAgent, dispose, getModelStatus, stopInference } = re
 const { createWindow, getMainWindow } = require('./services/window');
 const { createTray } = require('./services/tray');
 const { initializeLlama2, runPrivacyAgent, dispose: disposePrivacy, getModel2Status } = require('./services/llama2');
+const { ensureModelsReady } = require('./modelsInstaller');
 app.commandLine.appendSwitch('js-flags', '--expose-gc');
 
 dotenv.config();
@@ -13,35 +14,46 @@ const isDev = !app.isPackaged;
 
 async function handleWindowCreated(window) {
   try {
-      console.log('6. Beginning models initialization...');
-      
-      // Load models sequentially with proper cleanup
-      console.log('Initializing Agent1 model...');
-      const modelReady = await initializeLlama();
-      window.webContents.send('modelStatus', { ready: modelReady });
-      
-      // Add a small delay to allow memory cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Initializing Agent2 model...');
-      const privacyModelReady = await initializeLlama2();
-      window.webContents.send('privacyModelStatus', { ready: privacyModelReady });
-      
-      console.log('7. Both models initialized');
+    console.log('6. Beginning models initialization...');
+
+    if (!isDev) {
+      console.log('Checking models (packaged build)…');
+      try {
+        await ensureModelsReady(window);
+      } catch (e) {
+        console.error('Model install failed:', e);
+        try { window.webContents.send('models:error', String(e?.message || e)); } catch { }
+        throw e; 
+      }
+    }
+
+    // Load models sequentially with proper cleanup
+    console.log('Initializing Agent1 model...');
+    const modelReady = await initializeLlama();
+    window.webContents.send('modelStatus', { ready: modelReady });
+
+    // Add a small delay to allow memory cleanup
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    console.log('Initializing Agent2 model...');
+    const privacyModelReady = await initializeLlama2();
+    window.webContents.send('privacyModelStatus', { ready: privacyModelReady });
+
+    console.log('7. Both models initialized');
   } catch (error) {
-      console.error('8. Model initialization failed:', error);
-      window.webContents.send('modelStatus', { ready: false, error: error.message });
+    console.error('8. Model initialization failed:', error);
+    window.webContents.send('modelStatus', { ready: false, error: error.message });
   }
 }
 
 app.whenReady().then(async () => {
   console.log('15. App ready, creating window...');
   try {
-      const window = await createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, handleWindowCreated);
-      console.log('16. Window created successfully');
-      createTray(window);  // Pass the window instance 
+    const window = await createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, handleWindowCreated);
+    console.log('16. Window created successfully');
+    createTray(window);  // Pass the window instance 
   } catch (error) {
-      console.error('17. Failed to create window:', error);
+    console.error('17. Failed to create window:', error);
   }
 });
 
@@ -96,7 +108,7 @@ ipcMain.handle('analyzeText', async (event, text) => {
   try {
     // Only block new analysis, not the stop button
     mainWindow.webContents.send('analysisStateChange', { isAnalyzing: true });
-    
+
     const result = await runAgent(text, mainWindow);
     if (result) {
       mainWindow.webContents.send('analysisComplete', {
@@ -160,7 +172,7 @@ ipcMain.handle('stopAnalysis', async () => {
 
 app.on('before-quit', async () => {
   await Promise.all([
-      dispose(),
-      disposePrivacy()
+    dispose(),
+    disposePrivacy()
   ]);
 });

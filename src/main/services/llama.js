@@ -91,7 +91,7 @@ async function initializeLlama() {
     }
 
     const baseModelDir = app.isPackaged
-      ? path.join(process.resourcesPath, 'models')
+      ? path.join(app.getPath('userData'), 'models')
       : path.join(__dirname, '../../models');
 
     console.log('Loading model from:', baseModelDir);

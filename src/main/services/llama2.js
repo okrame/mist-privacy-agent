@@ -69,7 +69,7 @@ async function initializeLlama2() {
     }
 
     const baseModelDir = app.isPackaged
-      ? path.join(process.resourcesPath, 'models')
+      ? path.join(app.getPath('userData'), 'models')
       : path.join(__dirname, '../../models');
 
     console.log('Loading agent2 model from:', baseModelDir);

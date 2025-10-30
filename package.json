@@ -8,7 +8,6 @@
     "make": "electron-forge make"
   },
   "dependencies": {
-    "@llama-node/llama-cpp": "^0.1.6",
     "dotenv": "^16.4.5",
     "electron-positioner": "^4.1.0",
     "electron-store": "^10.0.0",
@@ -39,10 +38,27 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "extraResource": [
-          "models"
-        ]
+      "asar": true,
+      "asarUnpack": ["**/*.node"]
       },
+      "makers": [
+        {
+          "name": "@electron-forge/maker-dmg",
+          "platforms": ["darwin"],
+          "config": { "format": "ULFO" }
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": ["darwin"]
+        },
+        { "name": "@electron-forge/maker-deb", "platforms": ["linux"] },
+        { "name": "@electron-forge/maker-rpm", "platforms": ["linux"] },
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "platforms": ["win32"],
+          "config": { "name": "mist_privacy_agent" }
+        }
+      ],
       "plugins": [
         {
           "name": "@electron-forge/plugin-webpack",
@@ -55,9 +71,7 @@
                   "html": "./src/renderer/index.html",
                   "js": "./src/renderer/index.jsx",
                   "name": "main_window",
-                  "preload": {
-                    "js": "./src/main/preload.js"
-                  }
+                  "preload": { "js": "./src/main/preload.js" }
                 }
               ]
             }
