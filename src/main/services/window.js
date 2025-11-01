@@ -23,7 +23,8 @@ async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
           contextIsolation: true,
           nodeIntegration: false,
           enableRemoteModule: false,
-          preload: path.join(__dirname, '../../.webpack/main/preload.js'),
+          //preload: path.join(__dirname, '../../.webpack/main/preload.js'),
+          preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
           webSecurity: true,
           sandbox: true,
           scrollBounce: process.platform === 'darwin'
@@ -60,19 +61,11 @@ async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
   });
 
   try {
-      if (isDev) {
-          console.log('9. Loading webpack URL:', MAIN_WINDOW_WEBPACK_ENTRY);
-          try {
-              await mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-              console.log('10. Webpack URL loaded successfully');
-          } catch (webpackError) {
-              console.error('11. Failed to load webpack URL:', webpackError);
-              await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-          }
-      } else {
-          console.log('12. Loading file directly');
-          await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-      }
+      console.log('Loading renderer via MAIN_WINDOW_WEBPACK_ENTRY:', MAIN_WINDOW_WEBPACK_ENTRY);
+      await mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);   // <-- works in dev and prod
+
+      // ensure the window actually becomes visible
+      if (!mainWindow.isVisible()) mainWindow.show();
 
       if (isDev) {
           console.log('13. Opening DevTools');

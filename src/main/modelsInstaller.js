@@ -1,7 +1,7 @@
 const { app, dialog, BrowserWindow } = require('electron');
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
+const { https } = require('follow-redirects');
 const crypto = require('crypto');
 
 const MODELS = [
@@ -29,12 +29,19 @@ function sha256File(filePath) {
 
 function downloadToFile(url, dest, onProgress) {
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
-    https.get(url, (res) => {
-      if (res.statusCode !== 200) {
-        file.close(); fs.rmSync(dest, { force: true });
-        return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
-      }
+const file = fs.createWriteStream(dest);
+https.get(url, {
+  headers: {
+    'User-Agent': 'Mist/1.0 (+https://local)',
+    'Accept': '*/*'
+  },
+  maxRedirects: 10 // optional, follow-redirects supports this
+}, (res) => {
+
+  if (res.statusCode !== 200) {
+    file.close(); fs.rmSync(dest, { force: true });
+    return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+  }
       const total = Number(res.headers['content-length'] || 0);
       let received = 0;
 

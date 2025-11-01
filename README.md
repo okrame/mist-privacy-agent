@@ -98,7 +98,7 @@ Runs best on machines with sufficient RAM for GGUF quantization.
 
 ### Requirements:
 
-- macOS (Apple Silicon or Intel) — tested
+- macOS (apple silicon) — tested
 - Linux x86_64 — expected to work (Electron + node-llama-cpp, .deb/.rpm targets are configured)
 - Windows 10/11 x86_64 — packaging via Squirrel is configured but not tested yet
 
