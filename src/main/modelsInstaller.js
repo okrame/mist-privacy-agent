@@ -11,7 +11,7 @@ const MODELS = [
     sha256: '1f9ec8213cf2748260da7b9697ae76798a623ab63ad6e42e19cfe8285738b357' 
   },
   {
-    filename: 'BartowskiDeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf',
+    filename: 'DeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf',
     url: 'https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF/resolve/main/DeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf',
     sha256: '89cfcce9b4d2855f0e6dfa8c6c14e664e7a45739e1a9eb1bc6265ebee41406a8' 
   }

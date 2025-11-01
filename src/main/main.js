@@ -49,7 +49,14 @@ async function handleWindowCreated(window) {
 app.whenReady().then(async () => {
   console.log('15. App ready, creating window...');
   try {
-    const window = await createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, handleWindowCreated);
+    // Electron-vite uses different path structure
+    // In development: renderer runs on vite dev server
+    // In production: renderer is in out/renderer directory
+    const rendererPath = isDev 
+      ? 'http://localhost:5173' // Default vite dev server port
+      : path.join(__dirname, '../renderer/index.html');
+    
+    const window = await createWindow(isDev, rendererPath, handleWindowCreated);
     console.log('16. Window created successfully');
     createTray(window);  // Pass the window instance 
   } catch (error) {
@@ -70,13 +77,13 @@ ipcMain.on('getModelStatus', (event) => {
 
 app.on('activate', async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    const window = await createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, handleWindowCreated);
+    const rendererPath = isDev 
+      ? 'http://localhost:5173'
+      : path.join(__dirname, '../renderer/index.html');
+    const window = await createWindow(isDev, rendererPath, handleWindowCreated);
     createTray(window);  // Create tray with new window instance
   }
 });
-
-
-
 
 ipcMain.on('getPrivacyModelStatus', (event) => {
   const status = getModel2Status();
@@ -168,7 +175,6 @@ ipcMain.handle('stopAnalysis', async () => {
     return false;
   }
 });
-
 
 app.on('before-quit', async () => {
   await Promise.all([

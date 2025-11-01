@@ -76,7 +76,7 @@ async function initializeLlama2() {
     privacyModel = await llama2.loadModel({
       modelPath: path.join(
         baseModelDir,
-        'BartowskiDeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf'
+        'DeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf'
       ),
       contextSize: 2048,
       modelConfig: {

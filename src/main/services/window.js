@@ -8,7 +8,7 @@ const DEFAULT_HEIGHT = 300;
 
 let mainWindow;
 
-async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
+async function createWindow(isDev, rendererPath, onWindowCreated) {
   console.log('1. Starting window creation...');
   mainWindow = new BrowserWindow({
       width: DEFAULT_WIDTH,
@@ -23,8 +23,7 @@ async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
           contextIsolation: true,
           nodeIntegration: false,
           enableRemoteModule: false,
-          //preload: path.join(__dirname, '../../.webpack/main/preload.js'),
-          preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+          preload: path.join(__dirname, '../preload/index.js'), 
           webSecurity: true,
           sandbox: true,
           scrollBounce: process.platform === 'darwin'
@@ -41,7 +40,6 @@ async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
       console.log('4. Window started loading');
   });
 
-  // Move the model initialization logic here
   let isInitializing = false;
   mainWindow.webContents.on('did-finish-load', async () => {
       console.log('5. Window finished loading');
@@ -61,10 +59,14 @@ async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
   });
 
   try {
-      console.log('Loading renderer via MAIN_WINDOW_WEBPACK_ENTRY:', MAIN_WINDOW_WEBPACK_ENTRY);
-      await mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);   // <-- works in dev and prod
+      console.log('Loading renderer:', rendererPath);
+      // CHANGED: Handle both URL and file path
+      if (isDev) {
+          await mainWindow.loadURL(rendererPath);
+      } else {
+          await mainWindow.loadFile(rendererPath);
+      }
 
-      // ensure the window actually becomes visible
       if (!mainWindow.isVisible()) mainWindow.show();
 
       if (isDev) {

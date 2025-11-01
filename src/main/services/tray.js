@@ -9,7 +9,10 @@ function createTray(mainWindow) {
     return tray;
   }
 
-  const iconPath = path.join(__dirname, '../../static/icon.png');
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'static/icon.png')
+    : path.join(__dirname, '../../static/icon.png');
+  
   const icon = nativeImage.createFromPath(iconPath);
   
   tray = new Tray(icon);
