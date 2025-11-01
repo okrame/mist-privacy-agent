@@ -23,9 +23,9 @@ async function createWindow(isDev, rendererPath, onWindowCreated) {
           contextIsolation: true,
           nodeIntegration: false,
           enableRemoteModule: false,
-          preload: path.join(__dirname, '../preload/index.js'), 
+          preload: path.join(__dirname, '../../preload/index.js'), 
           webSecurity: true,
-          sandbox: true,
+          sandbox: !isDev,
           scrollBounce: process.platform === 'darwin'
       }
   });

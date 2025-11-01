@@ -3,22 +3,33 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { copyFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
 
-// Custom plugin to copy services directory and models
 function copyServicesPlugin() {
   return {
     name: 'copy-services',
     closeBundle() {
+
+      // Copy static assets
+      const staticSrcDir = resolve(__dirname, 'static');
+      const staticDestDir = resolve(__dirname, 'out/static');
+      if (existsSync(staticSrcDir)) {
+        mkdirSync(staticDestDir, { recursive: true });
+        readdirSync(staticSrcDir).forEach(file => {
+          copyFileSync(resolve(staticSrcDir, file), resolve(staticDestDir, file));
+        });
+        console.log('✓ Copied static assets to out/static/');
+      }
+
       // Copy services
       const servicesDir = resolve(__dirname, 'out/main/services');
       mkdirSync(servicesDir, { recursive: true });
-      
+
       const servicesToCopy = [
         'llama.js',
-        'llama2.js', 
+        'llama2.js',
         'tray.js',
         'window.js'
       ];
-      
+
       servicesToCopy.forEach(file => {
         const src = resolve(__dirname, 'src/main/services', file);
         const dest = resolve(servicesDir, file);
@@ -35,11 +46,11 @@ function copyServicesPlugin() {
       // Copy models directory
       const modelsSourceDir = resolve(__dirname, 'models');
       const modelsDestDir = resolve(__dirname, 'out/models');
-      
+
       if (existsSync(modelsSourceDir)) {
         mkdirSync(modelsDestDir, { recursive: true });
         const modelFiles = readdirSync(modelsSourceDir);
-        
+
         modelFiles.forEach(file => {
           if (file.endsWith('.gguf')) {
             const src = resolve(modelsSourceDir, file);

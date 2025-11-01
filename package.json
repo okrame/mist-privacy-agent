@@ -47,6 +47,9 @@
     "files": [
       "out/**/*",
       "node_modules/**/*",
+      "!out/models/**",
+      "!models/**",
+      "!src/models/**",
       "package.json"
     ],
     "directories": {

@@ -54,7 +54,7 @@ app.whenReady().then(async () => {
     // In production: renderer is in out/renderer directory
     const rendererPath = isDev 
       ? 'http://localhost:5173' // Default vite dev server port
-      : path.join(__dirname, '../renderer/index.html');
+      : path.join(__dirname, '../../renderer/index.html');
     
     const window = await createWindow(isDev, rendererPath, handleWindowCreated);
     console.log('16. Window created successfully');
@@ -79,7 +79,7 @@ app.on('activate', async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     const rendererPath = isDev 
       ? 'http://localhost:5173'
-      : path.join(__dirname, '../renderer/index.html');
+      : path.join(__dirname, '../../renderer/index.html');
     const window = await createWindow(isDev, rendererPath, handleWindowCreated);
     createTray(window);  // Create tray with new window instance
   }

@@ -9,12 +9,13 @@ function createTray(mainWindow) {
     return tray;
   }
 
-  const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'static/icon.png')
-    : path.join(__dirname, '../../static/icon.png');
-  
-  const icon = nativeImage.createFromPath(iconPath);
-  
+  const iconPath = path.join(app.getAppPath(), 'static', process.platform === 'darwin' ? 'iconTemplate.png' : 'icon.png');
+  let icon = nativeImage.createFromPath(iconPath);
+  if (process.platform === 'darwin') icon.setTemplateImage(true);
+  if (icon.isEmpty()) {
+    icon = nativeImage.createFromPath(path.join(__dirname, '../../static/icon.png'));
+  }
+
   tray = new Tray(icon);
 
   function toggleWindow(bounds) {
@@ -29,14 +30,14 @@ function createTray(mainWindow) {
   }
 
   const contextMenu = Menu.buildFromTemplate([
-    { 
-      label: 'Open Privacy Analysis', 
-      click: () => toggleWindow() 
+    {
+      label: 'Open Privacy Analysis',
+      click: () => toggleWindow()
     },
     { type: 'separator' },
-    { 
-      label: 'Quit', 
-      click: () => app.quit() 
+    {
+      label: 'Quit',
+      click: () => app.quit()
     }
   ]);
 
