@@ -80,7 +80,7 @@ Get dependencies with `npm install`
 
 Download the required model files and place them in: `/src/models/`
 
-Run the electron app in development mode: `npm start`
+Run the electron app in development mode: `npm run dev`
 
 The app will pop up in the menu bar, and it will first initialize the models. 
 

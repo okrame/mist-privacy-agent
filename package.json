@@ -42,7 +42,8 @@
     "asarUnpack": [
       "**/node_modules/node-llama-cpp/**",
       "**/node_modules/@node-llama-cpp/**",
-      "**/node_modules/@reflink/**"
+      "**/node_modules/@reflink/**",
+      "**/node_modules/node-llama-cpp/dist/grammars/**"
     ],
     "files": [
       "out/**/*",
@@ -51,6 +52,15 @@
       "!models/**",
       "!src/models/**",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "static",
+        "to": "static",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "directories": {
       "output": "dist",
@@ -61,11 +71,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64", "x64"]
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["arm64", "x64"]
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.icns"
@@ -74,17 +90,25 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.ico"
     },
     "linux": {
-      "target": ["deb", "rpm", "AppImage"],
+      "target": [
+        "deb",
+        "rpm",
+        "AppImage"
+      ],
       "category": "Utility",
       "icon": "build/icon.png"
     },

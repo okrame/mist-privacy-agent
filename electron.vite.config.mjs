@@ -8,7 +8,6 @@ function copyServicesPlugin() {
     name: 'copy-services',
     closeBundle() {
 
-      // Copy static assets
       const staticSrcDir = resolve(__dirname, 'static');
       const staticDestDir = resolve(__dirname, 'out/static');
       if (existsSync(staticSrcDir)) {
@@ -19,7 +18,6 @@ function copyServicesPlugin() {
         console.log('✓ Copied static assets to out/static/');
       }
 
-      // Copy services
       const servicesDir = resolve(__dirname, 'out/main/services');
       mkdirSync(servicesDir, { recursive: true });
 
@@ -37,13 +35,11 @@ function copyServicesPlugin() {
         console.log(`✓ Copied ${file} to out/main/services/`);
       });
 
-      // Copy modelsInstaller.js
       const installerSrc = resolve(__dirname, 'src/main/modelsInstaller.js');
       const installerDest = resolve(__dirname, 'out/main/modelsInstaller.js');
       copyFileSync(installerSrc, installerDest);
       console.log('✓ Copied modelsInstaller.js');
 
-      // Copy models directory
       const modelsSourceDir = resolve(__dirname, 'models');
       const modelsDestDir = resolve(__dirname, 'out/models');
 

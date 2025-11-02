@@ -8,6 +8,7 @@ const DEFAULT_WIDTH = 650;
 const DEFAULT_HEIGHT = 300;
 
 let mainWindow;
+let isQuitting = false;
 
 async function createWindow(isDev, rendererPath, onWindowCreated) {
     const appRoot = app.isPackaged
@@ -42,6 +43,17 @@ async function createWindow(isDev, rendererPath, onWindowCreated) {
     });
 
     console.log('2. Binding window events...');
+
+    mainWindow.on('close', (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            mainWindow.hide();
+            
+            if (process.platform === 'darwin') {
+                app.dock.hide();
+            }
+        }
+    });
 
     mainWindow.webContents.on('dom-ready', () => {
         console.log('3. DOM ready event fired');
@@ -103,18 +115,29 @@ function getMainWindow() {
 function showWindow() {
     if (mainWindow) {
         mainWindow.show();
+        if (process.platform === 'darwin') {
+            app.dock.show();
+        }
     }
 }
 
 function hideWindow() {
     if (mainWindow) {
         mainWindow.hide();
+        if (process.platform === 'darwin') {
+            app.dock.hide();
+        }
     }
+}
+
+function setQuitting(value) {
+    isQuitting = value;
 }
 
 module.exports = {
     createWindow,
     getMainWindow,
     showWindow,
-    hideWindow
+    hideWindow,
+    setQuitting
 };
