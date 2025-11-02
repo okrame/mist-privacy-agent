@@ -7,10 +7,10 @@
     <a href="https://huggingface.co/gufett0/unsloth-llama3B">
         <img src="https://img.shields.io/badge/model-GGUF_quantized-important?style=flat-square">
     </a>
-    <img src="https://img.shields.io/badge/macOS-tested-brightgreen?style=flat-square">
+    <img src="https://img.shields.io/badge/macOS-only-brightgreen?style=flat-square&logo=apple">
+        <img src="https://img.shields.io/badge/Electron-32.x-47848F?style=flat-square&logo=electron&logoColor=white">
     <img src="https://img.shields.io/badge/Node-%3E%3D18-informational?style=flat-square">
 </p>
-
 
 
 Mist is a desktop experiment showing how local small language models can infer personal attributes from a user prompt, and then help rewrite that same prompt to reduce such inference risks.
