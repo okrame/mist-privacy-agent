@@ -7,10 +7,10 @@
     <a href="https://huggingface.co/gufett0/unsloth-llama3B">
         <img src="https://img.shields.io/badge/model-GGUF_quantized-important?style=flat-square">
     </a>
-    <img src="https://img.shields.io/badge/macOS-tested-brightgreen?style=flat-square">
+    <img src="https://img.shields.io/badge/macOS-only-brightgreen?style=flat-square&logo=apple">
+        <img src="https://img.shields.io/badge/Electron-32.x-47848F?style=flat-square&logo=electron&logoColor=white">
     <img src="https://img.shields.io/badge/Node-%3E%3D18-informational?style=flat-square">
 </p>
-
 
 
 Mist is a desktop experiment showing how local small language models can infer personal attributes from a user prompt, and then help rewrite that same prompt to reduce such inference risks.
@@ -80,7 +80,7 @@ Get dependencies with `npm install`
 
 Download the required model files and place them in: `/src/models/`
 
-Run the electron app in development mode: `npm start`
+Run the electron app in development mode: `npm run dev`
 
 The app will pop up in the menu bar, and it will first initialize the models. 
 
@@ -98,7 +98,7 @@ Runs best on machines with sufficient RAM for GGUF quantization.
 
 ### Requirements:
 
-- macOS (Apple Silicon or Intel) — tested
+- macOS (apple silicon) — tested
 - Linux x86_64 — expected to work (Electron + node-llama-cpp, .deb/.rpm targets are configured)
 - Windows 10/11 x86_64 — packaging via Squirrel is configured but not tested yet
 

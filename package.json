@@ -1,69 +1,123 @@
 {
   "name": "electron-llama-app",
   "version": "1.0.0",
-  "main": "./.webpack/main/main.js",
+  "main": "./out/main/index.js",
+  "productName": "Mist",
+  "description": "Privacy-focused AI agent with local LLM",
+  "author": "Your Name",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite preview",
+    "package": "npm run build && electron-builder --dir",
+    "make": "npm run build && electron-builder"
   },
   "dependencies": {
-    "@llama-node/llama-cpp": "^0.1.6",
+    "@node-llama-cpp/mac-arm64-metal": "^3.14.2",
     "dotenv": "^16.4.5",
     "electron-positioner": "^4.1.0",
     "electron-store": "^10.0.0",
+    "follow-redirects": "^1.15.11",
     "lucide-react": "^0.474.0",
-    "node-llama-cpp": "^3.1.1",
+    "node-llama-cpp": "^3.14.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.23.9",
     "@babel/preset-react": "^7.23.3",
-    "@electron-forge/cli": "^7.2.0",
-    "@electron-forge/maker-deb": "^7.2.0",
-    "@electron-forge/maker-dmg": "^7.10.2",
-    "@electron-forge/maker-rpm": "^7.2.0",
-    "@electron-forge/maker-squirrel": "^7.2.0",
-    "@electron-forge/maker-zip": "^7.2.0",
-    "@electron-forge/plugin-webpack": "^7.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.17",
-    "babel-loader": "^9.1.3",
-    "css-loader": "^6.10.0",
     "electron": "^32.1.2",
-    "node-loader": "^2.0.0",
-    "postcss": "^8.4.35",
-    "style-loader": "^3.3.4",
-    "tailwindcss": "^3.4.1"
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "vite": "^5.0.0"
   },
-  "config": {
-    "forge": {
-      "packagerConfig": {
-        "extraResource": [
-          "models"
+  "build": {
+    "appId": "it.okrame.mist",
+    "productName": "Mist",
+    "executableName": "Mist",
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/node-llama-cpp/**",
+      "**/node_modules/@node-llama-cpp/**",
+      "**/node_modules/@reflink/**",
+      "**/node_modules/node-llama-cpp/dist/grammars/**"
+    ],
+    "files": [
+      "out/**/*",
+      "node_modules/**/*",
+      "!out/models/**",
+      "!models/**",
+      "!src/models/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "static",
+        "to": "static",
+        "filter": [
+          "**/*"
         ]
-      },
-      "plugins": [
+      }
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
         {
-          "name": "@electron-forge/plugin-webpack",
-          "config": {
-            "mainConfig": "./webpack.main.config.js",
-            "renderer": {
-              "config": "./webpack.renderer.config.js",
-              "entryPoints": [
-                {
-                  "html": "./src/renderer/index.html",
-                  "js": "./src/renderer/index.jsx",
-                  "name": "main_window",
-                  "preload": {
-                    "js": "./src/main/preload.js"
-                  }
-                }
-              ]
-            }
-          }
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         }
-      ]
+      ],
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "deb",
+        "rpm",
+        "AppImage"
+      ],
+      "category": "Utility",
+      "icon": "build/icon.png"
+    },
+    "dmg": {
+      "format": "ULFO"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }

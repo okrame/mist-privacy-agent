@@ -1,4 +1,5 @@
-const { BrowserWindow } = require('electron');
+// src/main/services/window.js
+const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
 const MIN_WIDTH = 400;
@@ -7,107 +8,136 @@ const DEFAULT_WIDTH = 650;
 const DEFAULT_HEIGHT = 300;
 
 let mainWindow;
+let isQuitting = false;
 
-async function createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, onWindowCreated) {
-  console.log('1. Starting window creation...');
-  mainWindow = new BrowserWindow({
-      width: DEFAULT_WIDTH,
-      height: DEFAULT_HEIGHT,
-      minWidth: MIN_WIDTH,
-      minHeight: MIN_HEIGHT,
-      show: false, 
-      frame: false,
-      fullscreenable: false,
-      resizable: true,
-      webPreferences: {
-          contextIsolation: true,
-          nodeIntegration: false,
-          enableRemoteModule: false,
-          preload: path.join(__dirname, '../../.webpack/main/preload.js'),
-          webSecurity: true,
-          sandbox: true,
-          scrollBounce: process.platform === 'darwin'
-      }
-  });
+async function createWindow(isDev, rendererPath, onWindowCreated) {
+    const appRoot = app.isPackaged
+        ? app.getAppPath() 
+        : path.join(__dirname, '../../'); 
 
-  console.log('2. Binding window events...');
-  
-  mainWindow.webContents.on('dom-ready', () => {
-      console.log('3. DOM ready event fired');
-  });
 
-  mainWindow.webContents.on('did-start-loading', () => {
-      console.log('4. Window started loading');
-  });
+    const preloadPath = isDev
+        ? path.join(__dirname, '../../preload/index.js')
+        : path.join(appRoot, 'out/preload/index.js');
 
-  // Move the model initialization logic here
-  let isInitializing = false;
-  mainWindow.webContents.on('did-finish-load', async () => {
-      console.log('5. Window finished loading');
-      if (isInitializing) {
-          console.log('Model initialization already in progress, skipping...');
-          return;
-      }
-      
-      if (onWindowCreated) {
-          try {
-              isInitializing = true;
-              await onWindowCreated(mainWindow);
-          } finally {
-              isInitializing = false;
-          }
-      }
-  });
+    console.log('Preload path chosen:', preloadPath);
 
-  try {
-      if (isDev) {
-          console.log('9. Loading webpack URL:', MAIN_WINDOW_WEBPACK_ENTRY);
-          try {
-              await mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-              console.log('10. Webpack URL loaded successfully');
-          } catch (webpackError) {
-              console.error('11. Failed to load webpack URL:', webpackError);
-              await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-          }
-      } else {
-          console.log('12. Loading file directly');
-          await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-      }
+    mainWindow = new BrowserWindow({
+        width: DEFAULT_WIDTH,
+        height: DEFAULT_HEIGHT,
+        minWidth: MIN_WIDTH,
+        minHeight: MIN_HEIGHT,
+        show: false,
+        frame: false,
+        fullscreenable: false,
+        resizable: true,
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+            enableRemoteModule: false,
+            preload: preloadPath,
+            webSecurity: true,
+            sandbox: isDev ? false : false,
+            scrollBounce: process.platform === 'darwin'
+        }
+    });
 
-      if (isDev) {
-          console.log('13. Opening DevTools');
-          mainWindow.webContents.openDevTools({
-              mode: 'right',
-              activate: true
-          });
-      }
+    console.log('2. Binding window events...');
 
-  } catch (error) {
-      console.error('14. Critical error in window creation:', error);
-  }
+    mainWindow.on('close', (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            mainWindow.hide();
+            
+            if (process.platform === 'darwin') {
+                app.dock.hide();
+            }
+        }
+    });
 
-  return mainWindow;
+    mainWindow.webContents.on('dom-ready', () => {
+        console.log('3. DOM ready event fired');
+    });
+
+    mainWindow.webContents.on('did-start-loading', () => {
+        console.log('4. Window started loading');
+    });
+
+    let isInitializing = false;
+    mainWindow.webContents.on('did-finish-load', async () => {
+        console.log('5. Window finished loading');
+        if (isInitializing) {
+            console.log('Model initialization already in progress, skipping...');
+            return;
+        }
+
+        if (onWindowCreated) {
+            try {
+                isInitializing = true;
+                await onWindowCreated(mainWindow);
+            } finally {
+                isInitializing = false;
+            }
+        }
+    });
+
+    try {
+        if (isDev) {
+            console.log('Loading renderer (dev):', rendererPath);
+            await mainWindow.loadURL(rendererPath); 
+        } else {
+            const rendererIndex = path.join(appRoot, 'out/renderer/index.html');
+            console.log('Loading renderer (prod):', rendererIndex);
+            await mainWindow.loadFile(rendererIndex); 
+        }
+
+        if (!mainWindow.isVisible()) mainWindow.show();
+
+        if (isDev) {
+            console.log('13. Opening DevTools');
+            mainWindow.webContents.openDevTools({
+                mode: 'right',
+                activate: true
+            });
+        }
+
+    } catch (error) {
+        console.error('14. Critical error in window creation:', error);
+    }
+
+    return mainWindow;
 }
 
 function getMainWindow() {
-  return mainWindow;
+    return mainWindow;
 }
 
 function showWindow() {
-  if (mainWindow) {
-    mainWindow.show();
-  }
+    if (mainWindow) {
+        mainWindow.show();
+        if (process.platform === 'darwin') {
+            app.dock.show();
+        }
+    }
 }
 
 function hideWindow() {
-  if (mainWindow) {
-    mainWindow.hide();
-  }
+    if (mainWindow) {
+        mainWindow.hide();
+        if (process.platform === 'darwin') {
+            app.dock.hide();
+        }
+    }
+}
+
+function setQuitting(value) {
+    isQuitting = value;
 }
 
 module.exports = {
-  createWindow,
-  getMainWindow,
-  showWindow,
-  hideWindow
+    createWindow,
+    getMainWindow,
+    showWindow,
+    hideWindow,
+    setQuitting
 };

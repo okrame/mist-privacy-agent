@@ -22,7 +22,6 @@ let currentSession = null;
 
 // Models
 const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals.gguf";
-//const testmodel = "unsloth.llama3b.Q4_K_M.smalljson.proposals_2GT.gguf"; 
 
 function getModelStatus() {
   return { ready: model !== null && llama !== null };
@@ -41,12 +40,10 @@ async function stopInference() {
         await currentSession.session.contextSequence.interrupt();
       }
 
-      // Wait for the actual processing to complete
       if (processingPromise) {
         try {
           await processingPromise;
         } catch (error) {
-          // Expected error from interruption
           console.log('Processing interrupted successfully');
         }
       }
@@ -91,7 +88,7 @@ async function initializeLlama() {
     }
 
     const baseModelDir = app.isPackaged
-      ? path.join(process.resourcesPath, 'models')
+      ? path.join(app.getPath('userData'), 'models')
       : path.join(__dirname, '../../models');
 
     console.log('Loading model from:', baseModelDir);
@@ -113,7 +110,12 @@ async function initializeLlama() {
       global.gc();
     }
 
-    jsonGrammar = await llama.getGrammarFor("json");
+    try {
+      jsonGrammar = await llama.getGrammarFor("json");
+    } catch (e) {
+      console.warn('JSON grammar not available, continuing without it:', e?.message || e);
+      jsonGrammar = undefined;
+    }
     await preWarmModel();
 
     console.log('Llama model initialized and pre-warmed successfully');
@@ -162,7 +164,6 @@ async function cleanupSession(sessionObj) {
     }
   }
 
-  // Small delay to ensure cleanup is complete
   await new Promise(resolve => setTimeout(resolve, 100));
 }
 async function createNewSession() {
@@ -215,20 +216,18 @@ async function runAgent(text, window) {
   let sessionObj = null;
 
   try {
-    // Always create a new session for each analysis
+    // create a new session for each analysis
     sessionObj = await createNewSession();
     let accumulator = '';
 
-    const response = await sessionObj.session.prompt(text, {
-      grammar: jsonGrammar,
-      onTextChunk: (chunk) => {
+    const promptOpts = { onTextChunk: (chunk) => {
         const decodedChunk = chunk.replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
           String.fromCodePoint(parseInt(hex, 16))
         );
 
         accumulator += decodedChunk;
         try {
-          // Try to parse the accumulated JSON
+          // try to parse the accumulated JSON
           const parsedJson = JSON.parse(accumulator);
           window.webContents.send('analysisChunk', {
             text: decodedChunk,
@@ -236,16 +235,17 @@ async function runAgent(text, window) {
             data: parsedJson
           });
         } catch (e) {
-          // If we can't parse it yet, just send the chunk
           window.webContents.send('analysisChunk', {
             text: decodedChunk,
             isComplete: false
           });
         }
-      }
-    });
+      }}
+      if (jsonGrammar) promptOpts.grammar = jsonGrammar;
 
-    // Handle successful completion
+
+    const response = await sessionObj.session.prompt(text, promptOpts);
+
     const decodedResponse = response.replace(/\\u([a-fA-F0-9]{4})/g, (_, hex) =>
       String.fromCodePoint(parseInt(hex, 16))
     );
@@ -265,7 +265,6 @@ async function runAgent(text, window) {
     console.error('Error running agent:', error);
     throw error;
   } finally {
-    // Always clean up the session after use
     if (sessionObj) {
       await cleanupSession(sessionObj);
     }
@@ -279,14 +278,12 @@ async function dispose() {
     try {
       await model.dispose();
       model = null;
-      // Force cleanup
       if (global.gc) global.gc();
     } catch (e) {
       console.warn('Error disposing model:', e);
     }
   }
 
-  // Add a small delay before disposing llama
   await new Promise(resolve => setTimeout(resolve, 300));
 
   if (llama) {
@@ -308,7 +305,6 @@ function logMemoryUsage(label) {
   }
 }
 
-// Update the module exports:
 module.exports = {
   initializeLlama,
   runAgent,

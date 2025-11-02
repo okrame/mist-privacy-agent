@@ -103,7 +103,7 @@ const App = () => {
       }
     };
 
-    window.privacyAPI.onAnalysisStateChange(handleAnalysisStateChange);
+    window.privacyAPI?.onAnalysisStateChange?.(handleAnalysisStateChange);
     return () => {
       window.privacyAPI.onAnalysisStateChange(() => { });
     };

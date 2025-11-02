@@ -1,3 +1,6 @@
 node_modules
 .webpack
 models/*
+.env
+out/*
+dist/*

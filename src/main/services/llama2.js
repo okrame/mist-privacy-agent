@@ -1,7 +1,6 @@
 const { app } = require('electron');
 const path = require('path');
 
-// Define a more specific system prompt for privacy preservation
 const privacySystemPrompt = `You are a smart AI assistant.
 Your MUST think and reason briefly`;
 
@@ -25,10 +24,10 @@ async function preWarmPrivacyModel() {
 
   try {
     sessionObj = await createPrivacySession();
-    // Simple test prompt to warm up the model
+    //  test prompt to warm up the model
     const warmupPrompt = "This is a test sentence for warming up. Do not answer";
     await sessionObj.session.prompt(warmupPrompt, {
-      onToken: () => { } // Empty callback to prevent unnecessary processing
+      onToken: () => { } 
     });
     console.log('Agent2 model pre-warming complete');
   } catch (error) {
@@ -69,14 +68,14 @@ async function initializeLlama2() {
     }
 
     const baseModelDir = app.isPackaged
-      ? path.join(process.resourcesPath, 'models')
+      ? path.join(app.getPath('userData'), 'models')
       : path.join(__dirname, '../../models');
 
     console.log('Loading agent2 model from:', baseModelDir);
     privacyModel = await llama2.loadModel({
       modelPath: path.join(
         baseModelDir,
-        'BartowskiDeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf'
+        'DeepSeek-R1-Distill-Llama-8B-Q4_K_S.gguf'
       ),
       contextSize: 2048,
       modelConfig: {
@@ -150,7 +149,7 @@ async function runPrivacyAgent(text, attributes, analyzedPhrases, window) {
 2) Give me the modified text with same length as the original text.
 Original text to modify: "${text}"\n\n`;
     } else {
-      // Default prompt when no specific attributes are provided
+      // default prompt when no specific attributes are provided
       prompt = `Modify the following text so that nobody could infer any attributes about myself. 
       Follow these instructions:
 1) Rephrase the text to obscure any personal identifiable information while maintaining the core message.
@@ -158,39 +157,34 @@ Original text to modify: "${text}"\n\n`;
 Original text to modify: "${text}"\n\n`;
     }
 
-    // Initialize streaming
     let lastChunkTime = Date.now();
-    const CHUNK_DELAY = 5; // ms between chunks, reduced for smoother streaming
+    const CHUNK_DELAY = 5; // reduce for smoother streaming
 
     await sessionObj.session.prompt(prompt, {
       onToken: async (token) => {
         const decoded = privacyModel.detokenize([token]);
         accumulatedText += decoded;
 
-        // Print tokens directly to console
         process.stdout.write(decoded);
 
-        // Rate limit chunk sending to renderer
         const now = Date.now();
         if (now - lastChunkTime >= CHUNK_DELAY) {
-          // Extract summary if a think tag is present
+          // extract summary if a think tag is present
           const thinkTagIndex = accumulatedText.lastIndexOf('</think>');
 
-          // Split content if think tag is present
           let mainContent = accumulatedText;
           let summaryContent = '';
 
           if (thinkTagIndex !== -1) {
-            // Only show text up to the </think> tag in the main content
+            // opnly show text up to the </think> tag in the main content
             mainContent = accumulatedText.substring(0, thinkTagIndex + 8).trim();
-            // Extract the summary part
             summaryContent = accumulatedText.substring(thinkTagIndex + 8).trim();
           }
 
-          // Send intermediate chunks to the renderer
+          // send intermediate chunks to the renderer
           window.webContents.send('privacyChunk', {
-            text: mainContent, // Send only the thinking part for main display
-            summary: summaryContent, // Send just the summary part
+            text: mainContent, 
+            summary: summaryContent, 
             isComplete: false
           });
           lastChunkTime = now;
@@ -198,24 +192,20 @@ Original text to modify: "${text}"\n\n`;
       }
     });
 
-    // Final response handling
     const thinkTagIndex = accumulatedText.lastIndexOf('</think>');
 
-    // Split content if think tag is present
+    // split content if think tag is present
     let mainContent = accumulatedText;
     let summaryContent = '';
 
     if (thinkTagIndex !== -1) {
-      // Only show text up to the </think> tag in the main content
       mainContent = accumulatedText.substring(0, thinkTagIndex + 8).trim();
-      // Extract the summary part
       summaryContent = accumulatedText.substring(thinkTagIndex + 8).trim();
     }
 
-    // Send the final complete response with both parts
     window.webContents.send('privacyChunk', {
-      text: mainContent, // Main content stops at </think>
-      summary: summaryContent, // Summary starts after </think>
+      text: mainContent,
+      summary: summaryContent,
       isComplete: true
     });
 
@@ -232,7 +222,6 @@ Original text to modify: "${text}"\n\n`;
     };
   } catch (error) {
     console.error('Error running privacy agent:', error);
-    // Send error state to renderer
     window.webContents.send('privacyChunk', {
       text: `Error: ${error.message}`,
       summary: '',

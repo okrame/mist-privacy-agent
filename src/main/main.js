@@ -2,9 +2,10 @@ const { app, ipcMain, BrowserWindow } = require('electron');
 const path = require('path');
 const dotenv = require('dotenv');
 const { initializeLlama, runAgent, dispose, getModelStatus, stopInference } = require('./services/llama');
-const { createWindow, getMainWindow } = require('./services/window');
+const { createWindow, getMainWindow, setQuitting } = require('./services/window');
 const { createTray } = require('./services/tray');
 const { initializeLlama2, runPrivacyAgent, dispose: disposePrivacy, getModel2Status } = require('./services/llama2');
+const { ensureModelsReady } = require('./modelsInstaller');
 app.commandLine.appendSwitch('js-flags', '--expose-gc');
 
 dotenv.config();
@@ -13,35 +14,49 @@ const isDev = !app.isPackaged;
 
 async function handleWindowCreated(window) {
   try {
-      console.log('6. Beginning models initialization...');
-      
-      // Load models sequentially with proper cleanup
-      console.log('Initializing Agent1 model...');
-      const modelReady = await initializeLlama();
-      window.webContents.send('modelStatus', { ready: modelReady });
-      
-      // Add a small delay to allow memory cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Initializing Agent2 model...');
-      const privacyModelReady = await initializeLlama2();
-      window.webContents.send('privacyModelStatus', { ready: privacyModelReady });
-      
-      console.log('7. Both models initialized');
+    console.log('6. Beginning models initialization...');
+
+    if (!isDev) {
+      console.log('Checking models (packaged build)…');
+      try {
+        await ensureModelsReady(window);
+      } catch (e) {
+        console.error('Model install failed:', e);
+        try { window.webContents.send('models:error', String(e?.message || e)); } catch { }
+        throw e; 
+      }
+    }
+
+    console.log('Initializing Agent1 model...');
+    const modelReady = await initializeLlama();
+    window.webContents.send('modelStatus', { ready: modelReady });
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    console.log('Initializing Agent2 model...');
+    const privacyModelReady = await initializeLlama2();
+    window.webContents.send('privacyModelStatus', { ready: privacyModelReady });
+
+    console.log('7. Both models initialized');
   } catch (error) {
-      console.error('8. Model initialization failed:', error);
-      window.webContents.send('modelStatus', { ready: false, error: error.message });
+    console.error('8. Model initialization failed:', error);
+    window.webContents.send('modelStatus', { ready: false, error: error.message });
   }
 }
 
 app.whenReady().then(async () => {
   console.log('15. App ready, creating window...');
   try {
-      const window = await createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, handleWindowCreated);
-      console.log('16. Window created successfully');
-      createTray(window);  // Pass the window instance 
+
+    const rendererPath = isDev 
+      ? 'http://localhost:5173' 
+      : path.join(__dirname, '../../renderer/index.html');
+    
+    const window = await createWindow(isDev, rendererPath, handleWindowCreated);
+    console.log('16. Window created successfully');
+    createTray(window); 
   } catch (error) {
-      console.error('17. Failed to create window:', error);
+    console.error('17. Failed to create window:', error);
   }
 });
 
@@ -58,13 +73,13 @@ ipcMain.on('getModelStatus', (event) => {
 
 app.on('activate', async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    const window = await createWindow(isDev, MAIN_WINDOW_WEBPACK_ENTRY, handleWindowCreated);
-    createTray(window);  // Create tray with new window instance
+    const rendererPath = isDev 
+      ? 'http://localhost:5173'
+      : path.join(__dirname, '../../renderer/index.html');
+    const window = await createWindow(isDev, rendererPath, handleWindowCreated);
+    createTray(window);  
   }
 });
-
-
-
 
 ipcMain.on('getPrivacyModelStatus', (event) => {
   const status = getModel2Status();
@@ -90,13 +105,11 @@ ipcMain.handle('processPrivacy', async (event, { text, attributes, analyzedPhras
   }
 });
 
-// In main.js
 ipcMain.handle('analyzeText', async (event, text) => {
   const mainWindow = getMainWindow();
   try {
-    // Only block new analysis, not the stop button
     mainWindow.webContents.send('analysisStateChange', { isAnalyzing: true });
-    
+
     const result = await runAgent(text, mainWindow);
     if (result) {
       mainWindow.webContents.send('analysisComplete', {
@@ -157,10 +170,24 @@ ipcMain.handle('stopAnalysis', async () => {
   }
 });
 
+app.on('before-quit', () => {
+  console.log('App is quitting, allowing window close...');
+  setQuitting(true);
+});
 
-app.on('before-quit', async () => {
-  await Promise.all([
+app.on('will-quit', async (event) => {
+  console.log('Disposing models before quit...');
+  event.preventDefault();
+  
+  try {
+    await Promise.all([
       dispose(),
       disposePrivacy()
-  ]);
+    ]);
+    console.log('Models disposed successfully');
+  } catch (error) {
+    console.error('Error disposing models:', error);
+  } finally {
+    app.exit(0);
+  }
 });

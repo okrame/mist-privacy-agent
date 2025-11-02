@@ -1,10 +1,41 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>AlterEgo</title>
-  </head>
-  <body class="window-shadow">
-    <div id="root"></div>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Mist</title>
+</head>
+
+<body class="window-shadow">
+  <div id="root"></div>
+  <!-- Model Download Overlay -->
+  <div id="model-overlay" style="
+  position: fixed; inset: 0; 
+  display: none; 
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55); 
+  z-index: 9999; 
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;">
+    <div style="
+    background: #111; color: #fff; 
+    padding: 20px 24px; 
+    border-radius: 16px; 
+    min-width: 320px; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+      <div id="model-overlay-title" style="font-size: 15px; font-weight: 600; margin-bottom: 10px;">
+        Downloading models…
+      </div>
+      <div style="height: 8px; background: #333; border-radius: 999px; overflow: hidden;">
+        <div id="model-overlay-bar"
+          style="height: 100%; width: 0%; background: linear-gradient(90deg,#5f9,#6cf); transition: width 0.15s ease;">
+        </div>
+      </div>
+      <div id="model-overlay-detail" style="margin-top: 10px; font-size: 12px; color: #bbb;">
+        Preparing…
+      </div>
+    </div>
+  </div>
+<script type="module" src="./index.jsx"></script>
+</body>
+
 </html>
